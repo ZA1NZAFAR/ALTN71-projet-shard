@@ -18,19 +18,14 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return "users/" + userId;
     }
 
-    private async Task<JObject> GetScout(string userPath)
+    private async Task<Unit> GetScout(string userPath)
     {
         using var client = factory.CreateClient();
         using var unitsResponse = await client.GetAsync($"{userPath}/units");
         await unitsResponse.AssertSuccessStatusCode();
 
-        var units = await unitsResponse.Content.ReadAsAsync<JArray>();
-        Assert.NotNull(units);
-        Assert.Single(units);
-        var unit = units[0].Value<JObject>();
-
-        Assert.NotNull(unit);
-        return unit;
+        var units = await unitsResponse.AssertSuccessJsonAsync();
+        return new (units[0]);
     }
 
     [Fact]
@@ -39,9 +34,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task CreatingUserCreatesScout()
     {
         var unit = await GetScout(await CreateNewUserPath());
-        Assert.NotNull(unit["type"]);
-        Assert.Equal(JTokenType.String, unit["type"]!.Type);
-        Assert.Equal("scout", unit["type"]!.Value<string>());
+        Assert.Equal("scout", unit.Type);
     }
 
     [Fact]
@@ -50,11 +43,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task CreatingUserCreatesScoutInSomeSystem()
     {
         var unit = await GetScout(await CreateNewUserPath());
-        Assert.NotNull(unit["system"]);
-        Assert.Equal(JTokenType.String, unit["system"]!.Type);
-
-        var systemName = unit["system"]!.Value<string>();
-        Assert.NotNull(systemName);
+        Assert.NotNull(unit.System);
     }
 
     [Fact]
@@ -63,16 +52,12 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task CreatingUserCreatesScoutInSomeExistingSystem()
     {
         var unit = await GetScout(await CreateNewUserPath());
-        Assert.NotNull(unit["system"]);
-        var systemName = unit["system"]!.Value<string>();
 
         using var client = factory.CreateClient();
         using var response = await client.GetAsync("systems");
-        await response.AssertSuccessStatusCode();
 
-        var systems = await response.Content.ReadAsAsync<JArray>();
-        Assert.NotNull(systems);
-        var system = systems.SingleOrDefault(system => system["name"]?.Value<string>() == systemName);
+        var systems = new StarSystems(await response.AssertSuccessJsonAsync());
+        var system = systems.SingleOrDefault(system => system.Name == unit.System);
         Assert.NotNull(system);
     }
 
@@ -83,11 +68,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetScout(userPath);
-        var unitId = unit["id"]?.Value<string>();
-        Assert.NotNull(unitId);
 
         using var client = factory.CreateClient();
-        using var response = await client.GetAsync($"{userPath}/units/{unitId}");
+        using var response = await client.GetAsync($"{userPath}/units/{unit.Id}");
         await response.AssertSuccessStatusCode();
 
         var unit2 = await response.Content.ReadAsAsync<JObject>();
@@ -101,11 +84,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetScout(userPath);
-        var unitId = unit["id"]?.Value<string>();
-        Assert.NotNull(unitId);
 
         using var client = factory.CreateClient();
-        using var response = await client.GetAsync($"{userPath}/units/{unitId}z");
+        using var response = await client.GetAsync($"{userPath}/units/{unit.Id}z");
         await response.AssertStatusEquals(HttpStatusCode.NotFound);
     }
 
@@ -116,42 +97,32 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetScout(userPath);
-        var unitId = unit["id"]?.Value<string>();
-        Assert.NotNull(unitId);
 
-        var currentSystem = unit["system"]?.Value<string>();
-        Assert.NotNull(currentSystem);
-        var destinationSystem = await GetRandomSystemOtherThan(currentSystem);
+        var destinationSystem = await GetRandomSystemOtherThan(unit.System);
 
         using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unitId}", new
+        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
         {
-            id = unitId,
+            id = unit.Id,
             type = "scout",
             system = destinationSystem
         });
-        await response.AssertSuccessStatusCode();
 
-        var unitAfterMove = await response.Content.ReadAsAsync<JObject>();
+        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.NotNull(unitAfterMove);
-        Assert.Equal(unitId, unitAfterMove["id"]?.Value<string>());
-        Assert.Equal(destinationSystem, unitAfterMove["system"]?.Value<string>());
+        Assert.Equal(unit.Id, unitAfterMove.Id);
+        Assert.Equal(destinationSystem, unitAfterMove.System);
     }
 
     private async Task<string> GetRandomSystemOtherThan(string systemName)
     {
         using var client = factory.CreateClient();
         using var response = await client.GetAsync("systems");
-        await response.AssertSuccessStatusCode();
 
-        var systems = await response.Content.ReadAsAsync<JArray>();
-        Assert.NotNull(systems);
-        var system = systems.FirstOrDefault(system => system["name"]?.Value<string>() != systemName);
-        Assert.NotNull(system);
+        var systems = new StarSystems(await response.AssertSuccessJsonAsync());
+        var system = systems.First(system => system.Name != systemName);
 
-        var name = system["name"]?.Value<string>();
-        Assert.NotNull(name);
-        return name;
+        return system.Name;
     }
 
     [Fact]
@@ -161,48 +132,36 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetScout(userPath);
-        var unitId = unit["id"]?.Value<string>();
-        Assert.NotNull(unitId);
 
-        var currentSystem = unit["system"]?.Value<string>();
-        Assert.NotNull(currentSystem);
-        var destinationPlanet = (await GetSomePlanetInSystem(currentSystem));
+        var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
         using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unitId}", new
+        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
         {
-            id = unitId,
+            id = unit.Id,
             type = "scout",
-            system = currentSystem,
+            system = unit.System,
             planet = destinationPlanet
         });
-        await response.AssertSuccessStatusCode();
 
-        var unitAfterMove = await response.Content.ReadAsAsync<JObject>();
-        Assert.NotNull(unitAfterMove);
-        Assert.Equal(unitId, unitAfterMove["id"]?.Value<string>());
-        Assert.Equal(currentSystem, unitAfterMove["system"]?.Value<string>());
-        Assert.Equal(destinationPlanet, unitAfterMove["planet"]?.Value<string>());
+        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
+        Assert.Equal(unit.Id, unitAfterMove.Id);
+        Assert.Equal(unit.System, unitAfterMove.System);
+        Assert.Equal(destinationPlanet, unitAfterMove.Planet);
     }
 
     private async Task<string> GetSomePlanetInSystem(string systemName)
     {
         using var client = factory.CreateClient();
         using var response = await client.GetAsync("systems");
-        await response.AssertSuccessStatusCode();
 
-        var systems = await response.Content.ReadAsAsync<JArray>();
-        Assert.NotNull(systems);
-
-        var system = systems.FirstOrDefault(system => system["name"]?.Value<string>() == systemName);
+        var systems = new StarSystems(await response.AssertSuccessJsonAsync());
+        var system = systems.SingleOrDefault(system => system.Name == systemName);
         Assert.NotNull(system);
 
-        var planet = system["planets"]?.FirstOrDefault();
+        var planet = system.Planets.FirstOrDefault();
         Assert.NotNull(planet);
-
-        var name = planet["name"]?.Value<string>();
-        Assert.NotNull(name);
-        return name;
+        return planet.Name;
     }
 
     [Fact]
@@ -212,35 +171,26 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetScout(userPath);
-        var unitId = unit["id"]?.Value<string>();
-        Assert.NotNull(unitId);
         
-        var currentSystem = unit["system"]?.Value<string>();
-        Assert.NotNull(currentSystem);
-        var destinationPlanet = await GetSomePlanetInSystem(currentSystem);
+        var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
         using var client = factory.CreateClient();
-        using var moveResponse = await client.PutAsJsonAsync($"{userPath}/units/{unitId}", new
+        using var moveResponse = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
         {
-            id = unitId,
+            id = unit.Id,
             type = "scout",
-            system = currentSystem,
+            system = unit.System,
             planet = destinationPlanet
         });
         await moveResponse.AssertSuccessStatusCode();
 
-        using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unitId}/location");
-        await scoutingResponse.AssertSuccessStatusCode();
+        using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unit.Id}/location");
 
-        var location = await scoutingResponse.Content.ReadAsAsync<JObject>();
-        Assert.NotNull(location);
-        Assert.Equal(currentSystem, location["system"]?.Value<string>());
-        Assert.Equal(destinationPlanet, location["planet"]?.Value<string>());
+        var location = (await scoutingResponse.AssertSuccessJsonAsync()).AssertObject();
+        Assert.Equal(unit.System, location["system"].AssertString());
+        Assert.Equal(destinationPlanet, location["planet"].AssertString());
 
-        IDictionary<string, JToken?>? resources = location["resourcesQuantity"]?.Value<JObject>();
-        Assert.NotNull(resources);
-
-        foreach (var key in resources.Keys)
+        foreach (var key in location["resourcesQuantity"].AssertObject().Keys)
         {
             Assert.Contains(key, new[]
             {

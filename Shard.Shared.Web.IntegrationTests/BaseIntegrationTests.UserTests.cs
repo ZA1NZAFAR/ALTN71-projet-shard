@@ -26,12 +26,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
             id = "43",
             pseudo = "johny"
         });
-        await response.AssertSuccessStatusCode();
 
-        var user = await response.Content.ReadAsAsync<JObject>();
-        Assert.NotNull(user);
-        Assert.Equal("43", user["id"]?.Value<string>());
-        Assert.Equal("johny", user["pseudo"]?.Value<string>());
+        var user = (await response.AssertSuccessJsonAsync()).AssertObject();
+        Assert.Equal("43", user["id"].AssertString());
+        Assert.Equal("johny", user["pseudo"].AssertString());
     }
 
     [Fact]
@@ -86,16 +84,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         await userCreationResponse.AssertSuccessStatusCode();
 
         using var getUserResponse = await client.GetAsync("users/47");
-        await getUserResponse.AssertSuccessStatusCode();
 
-        var units = await getUserResponse.Content.ReadAsAsync<JObject>();
-        Assert.NotNull(units);
-        Assert.NotNull(units["id"]);
-        Assert.Equal(JTokenType.String, units["id"]?.Type);
-        Assert.Equal("47", units["id"]?.Value<string>());
-
-        Assert.NotNull(units["pseudo"]);
-        Assert.Equal(JTokenType.String, units["pseudo"]?.Type);
-        Assert.Equal("johny", units["pseudo"]?.Value<string>());
+        var units = await getUserResponse.AssertSuccessJsonAsync();
+        Assert.Equal("47", units["id"].AssertString());
+        Assert.Equal("johny", units["pseudo"].AssertString());
     }
 }
