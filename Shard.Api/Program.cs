@@ -24,5 +24,8 @@ app.Run();
 
 namespace Shard.Api
 {
-    public partial class Program { }
+    public partial class Program
+    {
+
+    }
 }
