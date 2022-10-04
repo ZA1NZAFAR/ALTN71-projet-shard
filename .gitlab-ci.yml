@@ -12,7 +12,7 @@ stages:
   - archive
 
 variables:
-  VERSION: '1'
+  VERSION: '2'
 
 compile:
   stage: compile
