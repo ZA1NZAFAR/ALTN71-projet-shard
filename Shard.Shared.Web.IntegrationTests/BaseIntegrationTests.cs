@@ -12,9 +12,11 @@ public abstract partial class BaseIntegrationTests<TEntryPoint, TWebApplicationF
     where TWebApplicationFactory: WebApplicationFactory<TEntryPoint> 
 { 
     private readonly WebApplicationFactory<TEntryPoint> factory; 
+    private readonly ITestOutputHelper testOutputHelper;
 
     public BaseIntegrationTests(TWebApplicationFactory factory, ITestOutputHelper testOutputHelper) 
-    { 
+    {
+        this.testOutputHelper = testOutputHelper;
         this.factory = factory 
             .WithWebHostBuilder(builder => 
             { 

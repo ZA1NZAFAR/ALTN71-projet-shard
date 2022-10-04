@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace Shard.Shared.Web.IntegrationTests.Asserts; 
+namespace Shard.Shared.Web.IntegrationTests.Asserts;
 
 public class BaseJTokenAsserter
 {
@@ -18,6 +18,6 @@ public class BaseJTokenAsserter
     public override string ToString()
         => token.ToString();
 
-    public IEnumerable<JTokenAsserter> Children 
+    public IEnumerable<JTokenAsserter> Children
         => Token.Select(childToken => new JTokenAsserter(childToken));
 }

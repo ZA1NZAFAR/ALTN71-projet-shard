@@ -99,14 +99,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var unit = await GetScout(userPath);
 
         var destinationSystem = await GetRandomSystemOtherThan(unit.System);
+        unit.System = destinationSystem;
 
         using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = destinationSystem
-        });
+        using var response = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
 
         var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.NotNull(unitAfterMove);
@@ -134,15 +130,11 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var unit = await GetScout(userPath);
 
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
+        unit.Planet = destinationPlanet;
+        testOutputHelper.WriteLine(unit.Json.ToString());
 
         using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = unit.System,
-            planet = destinationPlanet
-        });
+        using var response = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
 
         var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.Equal(unit.Id, unitAfterMove.Id);
@@ -174,14 +166,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
+        unit.Planet = destinationPlanet;
+
         using var client = factory.CreateClient();
-        using var moveResponse = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = unit.System,
-            planet = destinationPlanet
-        });
+        using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
         await moveResponse.AssertSuccessStatusCode();
 
         using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unit.Id}/location");
