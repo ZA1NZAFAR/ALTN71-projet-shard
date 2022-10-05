@@ -7,6 +7,11 @@ public record Unit(JObjectAsserter Json)
     {
     }
 
+    public Unit(JToken json)
+        : this(new JTokenAsserter(json))
+    {
+    }
+
     public string Id => Json["id"].AssertNonEmptyString();
     public string BaseUrl => $"users/{Id}";
     public string Type => Json["type"].AssertNonEmptyString();

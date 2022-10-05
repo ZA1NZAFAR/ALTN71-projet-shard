@@ -25,7 +25,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         await unitsResponse.AssertSuccessStatusCode();
 
         var units = await unitsResponse.AssertSuccessJsonAsync();
-        return new (units[0]);
+        var token = units.SelectTokens("[?(@.type==\"scout\")]").FirstOrDefault();
+        Assert.NotNull(token);
+        return new (token);
     }
 
     [Fact]
