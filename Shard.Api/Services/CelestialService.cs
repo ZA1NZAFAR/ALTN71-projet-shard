@@ -8,6 +8,7 @@ public interface ICelestialService
     SystemSpecification getSystemAndPlanets(string systemName);
     IReadOnlyList<PlanetSpecification> getPlanetsOfSystem(string systemName);
     PlanetSpecification getPlanetOfSystem(string systemName, string planetName);
+    SystemSpecification getRandomSystem();
 }
 
 public class CelestialService : ICelestialService
@@ -48,5 +49,12 @@ public class CelestialService : ICelestialService
         var system = sys.FirstOrDefault(x => x.Name == systemName);
         var planet = system.Planets.FirstOrDefault(x => x.Name == planetName);
         return planet;
+    }
+
+    public SystemSpecification getRandomSystem()
+    {
+        var sys = _universe.Systems;
+        var system = sys.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+        return system;
     }
 }
