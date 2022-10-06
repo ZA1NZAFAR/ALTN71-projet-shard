@@ -25,6 +25,16 @@ public record Unit(JObjectAsserter Json)
         get => Json["planet"].AssertString();
         set => Json.SetPropertyValue("planet", value);
     }
+    public string DestinationSystem
+    {
+        get => Json["destinationSystem"].AssertNonEmptyString();
+        set => Json.SetPropertyValue("destinationSystem", value);
+    }
+    public string? DestinationPlanet
+    {
+        get => Json["destinationPlanet"].AssertString();
+        set => Json.SetPropertyValue("destinationPlanet", value);
+    }
 
     public override string ToString() => Json.ToString();
 }

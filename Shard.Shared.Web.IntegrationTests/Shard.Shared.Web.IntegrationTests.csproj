@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shard.Core\Shard.Core.csproj" />
+    <ProjectReference Include="..\Shard.Shared.Core\Shard.Shared.Core.csproj" />
   </ItemGroup>
   
 </Project>

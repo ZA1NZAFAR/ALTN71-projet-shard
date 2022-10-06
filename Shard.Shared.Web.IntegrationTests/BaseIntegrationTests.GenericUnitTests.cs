@@ -6,7 +6,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 {
     private async Task<Unit> GetSingleUnitOfType(string userPath, string unitType)
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var unitsResponse = await client.GetAsync($"{userPath}/units");
         await unitsResponse.AssertSuccessStatusCode();
 
@@ -27,7 +27,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var userPath = await CreateNewUserPath();
         var unit = await GetSingleUnitOfType(userPath, unitType);
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync($"{userPath}/units/{unit.Id}");
         await response.AssertSuccessStatusCode();
 
@@ -40,7 +40,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var userPath = await CreateNewUserPath();
         var unit = await GetSingleUnitOfType(userPath, unitType);
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync($"{userPath}/units/{unit.Id}z");
         await response.AssertStatusEquals(HttpStatusCode.NotFound);
     }
@@ -51,20 +51,21 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var unit = await GetSingleUnitOfType(userPath, unitType);
 
         var destinationSystem = await GetRandomSystemOtherThan(unit.System);
-        unit.System = destinationSystem;
+        unit.DestinationSystem = destinationSystem;
+        unit.DestinationPlanet = null;
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
 
         var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.NotNull(unitAfterMove);
         Assert.Equal(unit.Id, unitAfterMove.Id);
-        Assert.Equal(destinationSystem, unitAfterMove.System);
+        Assert.Equal(destinationSystem, unitAfterMove.DestinationSystem);
     }
 
     private async Task<string> GetRandomSystemOtherThan(string systemName)
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var systems = new StarSystems(await response.AssertSuccessJsonAsync());
@@ -79,21 +80,21 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var unit = await GetSingleUnitOfType(userPath, unitType);
 
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
-        unit.Planet = destinationPlanet;
-        testOutputHelper.WriteLine(unit.Json.ToString());
+        unit.DestinationSystem = unit.System;
+        unit.DestinationPlanet = destinationPlanet;
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
 
         var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.Equal(unit.Id, unitAfterMove.Id);
-        Assert.Equal(unit.System, unitAfterMove.System);
-        Assert.Equal(destinationPlanet, unitAfterMove.Planet);
+        Assert.Equal(unit.System, unitAfterMove.DestinationSystem);
+        Assert.Equal(destinationPlanet, unitAfterMove.DestinationPlanet);
     }
 
     private async Task<string> GetSomePlanetInSystem(string systemName)
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var systems = new StarSystems(await response.AssertSuccessJsonAsync());

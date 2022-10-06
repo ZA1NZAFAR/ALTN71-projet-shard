@@ -5,7 +5,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     private async Task<string> CreateNewUserPath()
     {
         var userId = Guid.NewGuid().ToString();
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var userCreationResponse = await client.PutAsJsonAsync("users/" + userId, new
         {
             id = userId,
@@ -41,7 +41,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var unit = await GetScout(await CreateNewUserPath());
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var systems = new StarSystems(await response.AssertSuccessJsonAsync());
@@ -83,9 +83,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
-        unit.Planet = destinationPlanet;
+        unit.DestinationPlanet = destinationPlanet;
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
         await moveResponse.AssertSuccessStatusCode();
 
@@ -95,7 +95,12 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(unit.System, location["system"].AssertString());
         Assert.Equal(destinationPlanet, location["planet"].AssertString());
 
-        foreach (var key in location["resourcesQuantity"].AssertObject().Keys)
+        AssertResourcesQuantity(location);
+    }
+
+    private static void AssertResourcesQuantity(JObjectAsserter data)
+    {
+        foreach (var key in data["resourcesQuantity"].AssertObject().Keys)
         {
             Assert.Contains(key, new[]
             {

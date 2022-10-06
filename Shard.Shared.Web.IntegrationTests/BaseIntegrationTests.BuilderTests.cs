@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 namespace Shard.Shared.Web.IntegrationTests;
 
@@ -59,8 +59,8 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
-        unit.Planet = destinationPlanet;
-        using var client = factory.CreateClient();
+        unit.DestinationPlanet = destinationPlanet;
+        using var client = CreateClient();
         using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
         await moveResponse.AssertSuccessStatusCode();
 
