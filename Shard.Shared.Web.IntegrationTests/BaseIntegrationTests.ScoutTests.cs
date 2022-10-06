@@ -89,6 +89,8 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
         await moveResponse.AssertSuccessStatusCode();
 
+        await fakeClock.Advance(new TimeSpan(0, 0, 15));
+
         using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unit.Id}/location");
 
         var location = (await scoutingResponse.AssertSuccessJsonAsync()).AssertObject();
