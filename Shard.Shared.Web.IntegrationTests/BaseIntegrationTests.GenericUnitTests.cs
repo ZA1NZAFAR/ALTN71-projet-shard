@@ -74,7 +74,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return system.Name;
     }
 
-    public async Task MoveUnitToPlanet(string unitType)
+    public Task MoveUnitToPlanet(string unitType)
+        => MoveUnitToPlanet(CreateClient(), unitType);
+
+    private async Task<(string, string)> MoveUnitToPlanet(HttpClient client, string unitType)
     {
         var userPath = await CreateNewUserPath();
         var unit = await GetSingleUnitOfType(userPath, unitType);
@@ -83,13 +86,24 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         unit.DestinationSystem = unit.System;
         unit.DestinationPlanet = destinationPlanet;
 
-        using var client = CreateClient();
         using var response = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
 
         var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
         Assert.Equal(unit.Id, unitAfterMove.Id);
         Assert.Equal(unit.System, unitAfterMove.DestinationSystem);
         Assert.Equal(destinationPlanet, unitAfterMove.DestinationPlanet);
+
+        return (userPath, unit.Id);
+    }
+
+    private async Task<(string, Unit)> SendUnitToPlanet(HttpClient client, string unitType)
+    {
+        var (userPath, unitId) = await MoveUnitToPlanet(client, unitType);
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 15));
+
+        using var afterMoveResponse = await client.GetAsync($"{userPath}/units/{unitId}");
+        return (userPath, new Unit(await afterMoveResponse.AssertSuccessJsonAsync()));
     }
 
     private async Task<string> GetSomePlanetInSystem(string systemName)

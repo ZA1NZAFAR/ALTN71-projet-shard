@@ -74,4 +74,136 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(destinationPlanet, location["planet"].AssertString());
         location.AssertNullOrMissingProperty("resourcesQuantity");
     }
+		
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task CanBuildMineOnPlanet()
+    {
+        using var client = CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(1);
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine"
+        });
+
+        var building = (await response.AssertSuccessJsonAsync()).AssertObject();
+        Assert.Equal("mine", building["type"].AssertString());
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingMineReturnsMineWithLocation()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine"
+        });
+        await response.AssertSuccessStatusCode();
+
+        var building = (await response.AssertSuccessJsonAsync()).AssertObject();
+        Assert.Equal(builder.System, building["system"].AssertString());
+        Assert.Equal(builder.Planet, building["planet"].AssertString());
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithNoBodySends400()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync<object?>($"{userPath}/buildings", null);
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithIncorrectUserIdSends404()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}x/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithNoBuilderIdSends400()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            type = "mine"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithIncorrectBuilderIdSends400()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id + "x",
+            type = "mine"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithIncorrectBuildingTypeSends400()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "enim"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task BuildingWithUnitNotOverPlanetSends404()
+    {
+        using var client = CreateClient();
+
+        var userPath = await CreateNewUserPath();
+        var builder = await GetBuilder(userPath);
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
 }
