@@ -14,6 +14,13 @@ public class JObjectAsserter : BaseJTokenAsserter
         return new(childToken);
     }
 
+    public void AssertNullOrMissingProperty(string name)
+    {
+        var childToken = Token[name];
+
+        Assert.True(childToken == null || childToken.Type == JTokenType.Null);
+    }
+
     public JTokenAsserter this[string name]
         => AssertObjectHasProperty(name);
 
