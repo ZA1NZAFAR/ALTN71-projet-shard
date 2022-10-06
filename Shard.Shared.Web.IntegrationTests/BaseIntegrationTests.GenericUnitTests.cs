@@ -119,4 +119,58 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.NotNull(planet);
         return planet.Name;
     }
+
+    public async Task GetUnit_IfMoreThan2secAway_DoesNotWait(string unitType)
+    {
+        using var client = CreateClient();
+        var (userPath, unitId) = await MoveUnitToPlanet(client, unitType);
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 13) - TimeSpan.FromTicks(1));
+
+        var requestTask = client.GetAsync($"{userPath}/units/{unitId}");
+        var delayTask = Task.Delay(500);
+        var firstToSucceed = await Task.WhenAny(requestTask, delayTask);
+
+        Assert.Same(requestTask, firstToSucceed);
+
+        using var response = await requestTask;
+        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
+        Assert.Null(unitAfterMove.Planet);
+	}
+
+    public async Task GetUnit_IfLessOrEqualThan2secAway_Waits(string unitType)
+    {
+        using var client = CreateClient();
+        var (userPath, unitId) = await MoveUnitToPlanet(client, unitType);
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 13));
+
+        var requestTask = client.GetAsync($"{userPath}/units/{unitId}");
+        var delayTask = Task.Delay(500);
+        var firstToSucceed = await Task.WhenAny(requestTask, delayTask);
+
+        Assert.Same(delayTask, firstToSucceed);
+    }
+
+    public async Task GetUnit_IfLessOrEqualThan2secAway_WaitsUntilArrived(string unitType)
+    {
+        using var client = CreateClient();
+        var (userPath, unitId) = await MoveUnitToPlanet(client, unitType);
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 13));
+
+        var requestTask = client.GetAsync($"{userPath}/units/{unitId}");
+        await Task.Delay(500);
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 2));
+
+        var delayTask = Task.Delay(500);
+        var firstToSucceed = await Task.WhenAny(requestTask, delayTask);
+
+        Assert.Same(requestTask, firstToSucceed);
+
+        using var response = await requestTask;
+        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
+        Assert.NotNull(unitAfterMove.Planet);
+    }
 }

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 
 namespace Shard.Shared.Web.IntegrationTests;
 
@@ -206,4 +206,22 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         });
         await response.AssertStatusEquals(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetBuilder_IfMoreThan2secAway_DoesNotWait()
+        => GetUnit_IfMoreThan2secAway_DoesNotWait("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetBuilder_IfLessOrEqualThan2secAway_Waits()
+        => GetUnit_IfLessOrEqualThan2secAway_Waits("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetBuilder_IfLessOrEqualThan2secAway_WaitsUntilArrived()
+        => GetUnit_IfLessOrEqualThan2secAway_WaitsUntilArrived("builder");
 }
