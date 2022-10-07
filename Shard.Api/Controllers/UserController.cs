@@ -23,7 +23,7 @@ public class UserController : Controller
     [ProducesResponseType(typeof(User), (int)HttpStatusCode.NotFound)]
     public ActionResult<User> createUser(string userId, [FromBody] User user)
     {
-        if (user == null 
+        if (user == null
             ||
             userId == null
             ||
@@ -72,20 +72,23 @@ public class UserController : Controller
         {
             return new NotFoundResult();
         }
+
         return Json(x);
     }
-    
+
     [HttpPut("users/{userId}/units/{unitId}")]
     public ActionResult<Vaisseau> updateUnit(string userId, string unitId, [FromBody] Vaisseau vaisseau)
     {
         var x = _userService.updateUnitOfUserById(userId, unitId, vaisseau);
         return Json(x);
     }
-    
-    [HttpDelete("users/{userId}/units/{unitId}/location")]
-    public ActionResult<Vaisseau> deleteUnitLocation(string userId, string unitId)
+
+    [HttpGet("users/{userId}/units/{unitId}/location")]
+    public ActionResult<Location> deleteUnitLocation(string userId, string unitId)
     {
-        return BadRequest("Not implemented");
+        Vaisseau temp = _userService.getUnitOfUserById(userId, unitId);
+        Location l =  new Location(temp.system, _celestialService.getPlanetOfSystem(temp.system, temp.planet));
+
+        return l;
     }
-    
 }

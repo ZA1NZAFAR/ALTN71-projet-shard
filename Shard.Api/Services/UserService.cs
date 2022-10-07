@@ -5,15 +5,11 @@ namespace Shard.Api.Services;
 public interface IUserService
 {
     public void addUser(User user);
-    public void deleteUser(User user);
-    public void deleteUser(string id);
     public void addVaisseauUser(Vaisseau vaisseau, User user);
-    public void addVaisseauUser(Vaisseau vaisseau, string id);
-    List<User> getAllUsers();
     User getUser(string userId);
     List<Vaisseau> getUnitsOfUserById(string userId);
-    object getUnitOfUserById(string userId, string unitId);
-    object? updateUnitOfUserById(string userId, string unitId, Vaisseau vaisseau);
+    Vaisseau getUnitOfUserById(string userId, string unitId);
+    Vaisseau? updateUnitOfUserById(string userId, string unitId, Vaisseau vaisseau);
 }
 
 public class UserService : IUserService
@@ -33,23 +29,6 @@ public class UserService : IUserService
         }
     }
 
-    public void deleteUser(User user)
-    {
-        if (_usersDB.ContainsKey(user))
-        {
-            _usersDB.Remove(user);
-        }
-    }
-
-    public void deleteUser(string id)
-    {
-        var user = _usersDB.Keys.FirstOrDefault(u => u.id == id);
-        if (user != null)
-        {
-            _usersDB.Remove(user);
-        }
-    }
-
     public void addVaisseauUser(Vaisseau vaisseau, User user)
     {
         if (_usersDB.ContainsKey(user))
@@ -58,47 +37,23 @@ public class UserService : IUserService
         }
     }
 
-    public void addVaisseauUser(Vaisseau vaisseau, string id)
-    {
-        var user = _usersDB.Keys.FirstOrDefault(u => u.id == id);
-        if (user != null)
-        {
-            _usersDB[user].Add(vaisseau);
-        }
-    }
-
-    public List<User> getAllUsers()
-    {
-        return _usersDB.Keys.ToList();
-    }
-
     public User getUser(string userId)
-    {
-        //find and return user or return null
-        return _usersDB.Keys.FirstOrDefault(u => u.id == userId) ?? null;
-    }
-    
+        => _usersDB.Keys.FirstOrDefault(u => u.id == userId) ?? null;
+
+
     public List<Vaisseau> getUnitsOfUserById(string userId)
     {
         var user = _usersDB.Keys.FirstOrDefault(u => u.id == userId);
-        if (user != null)
-        {
-            return _usersDB[user];
-        }
-        return null;
+        return user != null ? _usersDB[user] : null;
     }
-    
-    public object getUnitOfUserById(string userId, string unitId)
+
+    public Vaisseau getUnitOfUserById(string userId, string unitId)
     {
         var user = _usersDB.Keys.First(u => u.id == userId);
-        if (user != null)
-        {
-            return _usersDB[user].FirstOrDefault(u => u.id == unitId) ?? null;
-        }
-        return null;
+        return user != null ? _usersDB[user].FirstOrDefault(u => u.id == unitId) ?? null : null;
     }
-    
-    public object? updateUnitOfUserById(string userId, string unitId, Vaisseau vaisseau)
+
+    public Vaisseau? updateUnitOfUserById(string userId, string unitId, Vaisseau vaisseau)
     {
         var user = _usersDB.Keys.First(u => u.id == userId);
         if (user != null)
