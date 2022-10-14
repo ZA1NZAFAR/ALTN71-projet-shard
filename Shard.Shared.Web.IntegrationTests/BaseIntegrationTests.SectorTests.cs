@@ -8,7 +8,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "1")]
     public async Task CanReadSystems()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -20,7 +20,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "1")]
     public async Task SystemsHaveNames()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -32,7 +32,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "1")]
     public async Task SystemsHavePlanets()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -44,7 +44,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "1")]
     public async Task PlanetsHaveNames()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -62,7 +62,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "1")]
     public async Task PlanetsHaveSizes()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -74,7 +74,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task PlanetsDoNotHaveResources()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();
@@ -86,7 +86,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
     public async Task<StarSystem> GetFirstSystem()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var systemsResponse = await client.GetAsync("systems");
 
         var systems = await systemsResponse.AssertSuccessJsonAsync();
@@ -100,7 +100,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var system = await GetFirstSystem();
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync($"systems/{system.Name}");
 
         Assert.Equal(system.ToString(), (await response.AssertSuccessJsonAsync()).ToString());
@@ -114,7 +114,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var system = await GetFirstSystem();
         Assert.NotNull(system);
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync($"systems/{system.Name}/planets");
 
         Assert.Equal(system.Planets.ToString(), (await response.AssertSuccessJsonAsync()).ToString());
@@ -130,7 +130,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
         var planet = system.Planets[0];
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync($"systems/{system.Name}/planets/{planet.Name}");
 
         Assert.Equal(planet.ToString(), (await response.AssertSuccessJsonAsync()).ToString());
@@ -140,7 +140,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("grading", "true")]
     public async Task NonExistingSystemReturns404()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var array = await response.AssertSuccessJsonAsync();

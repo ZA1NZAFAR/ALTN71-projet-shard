@@ -1,13 +1,11 @@
-﻿using System.Net;
-
-namespace Shard.Shared.Web.IntegrationTests;
+﻿namespace Shard.Shared.Web.IntegrationTests;
 
 public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 {
     private async Task<string> CreateNewUserPath()
     {
         var userId = Guid.NewGuid().ToString();
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var userCreationResponse = await client.PutAsJsonAsync("users/" + userId, new
         {
             id = userId,
@@ -18,24 +16,14 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return "users/" + userId;
     }
 
-    private async Task<Unit> GetScout(string userPath)
-    {
-        using var client = factory.CreateClient();
-        using var unitsResponse = await client.GetAsync($"{userPath}/units");
-        await unitsResponse.AssertSuccessStatusCode();
-
-        var units = await unitsResponse.AssertSuccessJsonAsync();
-        return new (units[0]);
-    }
+    private Task<Unit> GetScout(string userPath)
+        => GetSingleUnitOfType(userPath, "scout");
 
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
-    public async Task CreatingUserCreatesScout()
-    {
-        var unit = await GetScout(await CreateNewUserPath());
-        Assert.Equal("scout", unit.Type);
-    }
+    public Task CreatingUserCreatesScout()
+        => CreatingUserCreatesOneUnitOfType("scout");
 
     [Fact]
     [Trait("grading", "true")]
@@ -53,7 +41,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         var unit = await GetScout(await CreateNewUserPath());
 
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("systems");
 
         var systems = new StarSystems(await response.AssertSuccessJsonAsync());
@@ -64,105 +52,26 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
-    public async Task GettingScoutStatusById()
-    {
-        var userPath = await CreateNewUserPath();
-        var unit = await GetScout(userPath);
-
-        using var client = factory.CreateClient();
-        using var response = await client.GetAsync($"{userPath}/units/{unit.Id}");
-        await response.AssertSuccessStatusCode();
-
-        var unit2 = await response.Content.ReadAsAsync<JObject>();
-        Assert.Equal(unit.ToString(), unit2?.ToString());
-    }
+    public Task GettingScoutStatusById()
+        => GettingUnitStatusById("scout");
 
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
-    public async Task GettingScoutStatusWithWrongIdReturns404()
-    {
-        var userPath = await CreateNewUserPath();
-        var unit = await GetScout(userPath);
-
-        using var client = factory.CreateClient();
-        using var response = await client.GetAsync($"{userPath}/units/{unit.Id}z");
-        await response.AssertStatusEquals(HttpStatusCode.NotFound);
-    }
+    public Task GettingScoutStatusWithWrongIdReturns404()
+        => GettingUnitStatusWithWrongIdReturns404("scout");
 
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
-    public async Task MoveScoutToOtherSystem()
-    {
-        var userPath = await CreateNewUserPath();
-        var unit = await GetScout(userPath);
-
-        var destinationSystem = await GetRandomSystemOtherThan(unit.System);
-
-        using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = destinationSystem
-        });
-
-        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
-        Assert.NotNull(unitAfterMove);
-        Assert.Equal(unit.Id, unitAfterMove.Id);
-        Assert.Equal(destinationSystem, unitAfterMove.System);
-    }
-
-    private async Task<string> GetRandomSystemOtherThan(string systemName)
-    {
-        using var client = factory.CreateClient();
-        using var response = await client.GetAsync("systems");
-
-        var systems = new StarSystems(await response.AssertSuccessJsonAsync());
-        var system = systems.First(system => system.Name != systemName);
-
-        return system.Name;
-    }
+    public Task MoveScoutToOtherSystem()
+        => MoveUnitToOtherSystem("scout");
 
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
-    public async Task MoveScoutToPlanet()
-    {
-        var userPath = await CreateNewUserPath();
-        var unit = await GetScout(userPath);
-
-        var destinationPlanet = await GetSomePlanetInSystem(unit.System);
-
-        using var client = factory.CreateClient();
-        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = unit.System,
-            planet = destinationPlanet
-        });
-
-        var unitAfterMove = new Unit(await response.AssertSuccessJsonAsync());
-        Assert.Equal(unit.Id, unitAfterMove.Id);
-        Assert.Equal(unit.System, unitAfterMove.System);
-        Assert.Equal(destinationPlanet, unitAfterMove.Planet);
-    }
-
-    private async Task<string> GetSomePlanetInSystem(string systemName)
-    {
-        using var client = factory.CreateClient();
-        using var response = await client.GetAsync("systems");
-
-        var systems = new StarSystems(await response.AssertSuccessJsonAsync());
-        var system = systems.SingleOrDefault(system => system.Name == systemName);
-        Assert.NotNull(system);
-
-        var planet = system.Planets.FirstOrDefault();
-        Assert.NotNull(planet);
-        return planet.Name;
-    }
+    public Task MoveScoutToPlanet()
+        => MoveUnitToPlanet("scout");
 
     [Fact]
     [Trait("grading", "true")]
@@ -174,15 +83,13 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         
         var destinationPlanet = await GetSomePlanetInSystem(unit.System);
 
-        using var client = factory.CreateClient();
-        using var moveResponse = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", new
-        {
-            id = unit.Id,
-            type = "scout",
-            system = unit.System,
-            planet = destinationPlanet
-        });
+        unit.DestinationPlanet = destinationPlanet;
+
+        using var client = CreateClient();
+        using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
         await moveResponse.AssertSuccessStatusCode();
+
+        await fakeClock.Advance(new TimeSpan(0, 0, 15));
 
         using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unit.Id}/location");
 
@@ -190,7 +97,12 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(unit.System, location["system"].AssertString());
         Assert.Equal(destinationPlanet, location["planet"].AssertString());
 
-        foreach (var key in location["resourcesQuantity"].AssertObject().Keys)
+        AssertResourcesQuantity(location);
+    }
+
+    private static void AssertResourcesQuantity(JObjectAsserter data)
+    {
+        foreach (var key in data["resourcesQuantity"].AssertObject().Keys)
         {
             Assert.Contains(key, new[]
             {
@@ -204,4 +116,22 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
             });
         }
     }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetScout_IfMoreThan2secAway_DoesNotWait()
+        => GetUnit_IfMoreThan2secAway_DoesNotWait("scout");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetScout_IfLessOrEqualThan2secAway_Waits()
+        => GetUnit_IfLessOrEqualThan2secAway_Waits("scout");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public Task GetScout_IfLessOrEqualThan2secAway_WaitsUntilArrived()
+        => GetUnit_IfLessOrEqualThan2secAway_WaitsUntilArrived("scout");
 }

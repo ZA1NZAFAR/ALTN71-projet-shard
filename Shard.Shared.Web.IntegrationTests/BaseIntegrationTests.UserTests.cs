@@ -10,7 +10,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CanGet404WhenQueryingUser()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.GetAsync("users/42");
         await response.AssertStatusEquals(HttpStatusCode.NotFound);
     }
@@ -20,7 +20,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CanCreateUser()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutAsJsonAsync("users/43", new
         {
             id = "43",
@@ -37,7 +37,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CreatingUserWithInconsistentIdFails()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutAsJsonAsync("users/44", new
         {
             id = "45",
@@ -51,7 +51,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CreatingUserWithLackOfBodyFails()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutAsJsonAsync<object?>("users/46", null);
         await response.AssertStatusEquals(HttpStatusCode.BadRequest);
     }
@@ -61,7 +61,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CreatingUserWithInvalidIdFails()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var response = await client.PutAsJsonAsync("users/'", new
         {
             id = "'",
@@ -75,7 +75,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "2")]
     public async Task CanFetchCreatedUser()
     {
-        using var client = factory.CreateClient();
+        using var client = CreateClient();
         using var userCreationResponse = await client.PutAsJsonAsync("users/47", new
         {
             id = "47",
@@ -85,8 +85,39 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
         using var getUserResponse = await client.GetAsync("users/47");
 
-        var units = await getUserResponse.AssertSuccessJsonAsync();
-        Assert.Equal("47", units["id"].AssertString());
-        Assert.Equal("johny", units["pseudo"].AssertString());
+        var user = await getUserResponse.AssertSuccessJsonAsync();
+        Assert.Equal("47", user["id"].AssertString());
+        Assert.Equal("johny", user["pseudo"].AssertString());
+	}
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task CanFetchResourcesFromNewlyCreatedUser()
+    {
+        using var client = CreateClient();
+        using var getUserResponse = await client.GetAsync(await CreateNewUserPath());
+
+        var user = await getUserResponse.AssertSuccessJsonAsync();
+        AssertResourcesQuantity(user.AssertObject());
+    }
+
+    [Theory]
+    [InlineData("aluminium", 0)]
+    [InlineData("carbon", 20)]
+    [InlineData("gold", 0)]
+    [InlineData("iron", 10)]
+    [InlineData("oxygen", 50)]
+    [InlineData("titanium", 0)]
+    [InlineData("water", 50)]
+    [Trait("grading", "true")]
+    [Trait("version", "3")]
+    public async Task GivesBasicResourcesToNewUser(string resourceName, int resourceQuantity)
+    {
+        using var client = CreateClient();
+        using var getUserResponse = await client.GetAsync(await CreateNewUserPath());
+
+        var user = await getUserResponse.AssertSuccessJsonAsync();
+        Assert.Equal(resourceQuantity, user["resourcesQuantity"][resourceName].AssertInteger());
     }
 }
