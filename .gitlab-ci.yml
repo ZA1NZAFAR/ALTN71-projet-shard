@@ -69,7 +69,7 @@ test:coverage:
     - dotnet test --filter "grading!=true" --settings coverlet.runsettings shard.sln
   after_script:
     - /root/.dotnet/tools/reportgenerator "-reports:*/TestResults/*/coverage.cobertura.xml" "-targetdir:./coverage" "-reporttypes:Html"
-    - cat coverage/index.htm | grep "<tr><th>Line coverage:</th><td>" | sed -E "s/^.*<td>(([[:digit:]]|\.)+)%.*$/\1/" | awk '{ print $1/100 }' > coverage/line_rate.txt
+    - cat coverage/index.htm | tr '\n' ' ' | sed -E "s/^.*Line coverage:<\/th>\\s*<td[^>]*>(([[:digit:]]|\.)+)%.*$/\1/" | awk '{ print $1/100 }' > coverage/line_rate.txt
   artifacts:
     when: always
     paths: 
