@@ -27,7 +27,7 @@ compile:
 .limitted:
   allow_failure: true
   interruptible: true
-  timeout: 3 minutes
+  timeout: 6 minutes
   rules:
   - if: $CI_COMMIT_BRANCH == "prod"
     when: on_success
