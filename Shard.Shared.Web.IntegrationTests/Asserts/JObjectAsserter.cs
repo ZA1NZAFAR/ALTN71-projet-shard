@@ -24,6 +24,15 @@ public class JObjectAsserter : BaseJTokenAsserter
     public JTokenAsserter this[string name]
         => AssertObjectHasProperty(name);
 
+    public JTokenAsserter? GetPropertyOrNull(string name)
+    {
+        var childToken = Token[name];
+        if (childToken == null)
+            return null;
+
+        return new(childToken);
+    }
+
     public void SetPropertyValue(string property, string? value)
         => Token[property] = value;
 

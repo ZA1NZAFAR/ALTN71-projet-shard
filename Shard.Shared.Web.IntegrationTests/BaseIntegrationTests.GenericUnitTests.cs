@@ -120,6 +120,24 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return planet.Name;
     }
 
+    private async Task<(string, Unit)> SendUnitToSpecificPlanet(
+        HttpClient client, string unitType, string destinationSystem, string destinationPlanet)
+    {
+        var userPath = await CreateNewUserPath();
+        var unit = await GetSingleUnitOfType(userPath, unitType);
+
+        unit.DestinationSystem = destinationSystem;
+        unit.DestinationPlanet = destinationPlanet;
+
+        using var moveResponse = await client.PutAsJsonAsync($"{userPath}/units/{unit.Id}", unit);
+        await moveResponse.AssertSuccessStatusCode();
+
+        await fakeClock.Advance(new TimeSpan(0, 1, 15));
+
+        using var afterMoveResponse = await client.GetAsync($"{userPath}/units/{unit.Id}");
+        return (userPath, new Unit(await afterMoveResponse.AssertSuccessJsonAsync()));
+    }
+
     public async Task GetUnit_IfMoreThan2secAway_DoesNotWait(string unitType)
     {
         using var client = CreateClient();

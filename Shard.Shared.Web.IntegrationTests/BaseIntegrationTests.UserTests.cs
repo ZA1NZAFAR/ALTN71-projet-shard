@@ -114,7 +114,13 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task GivesBasicResourcesToNewUser(string resourceName, int resourceQuantity)
     {
         using var client = CreateClient();
-        using var getUserResponse = await client.GetAsync(await CreateNewUserPath());
+        var userPath = await CreateNewUserPath();
+        await AssertResourceQuantity(client, userPath, resourceName, resourceQuantity);
+    }
+
+    private static async Task AssertResourceQuantity(HttpClient client, string userPath, string resourceName, int resourceQuantity)
+    {
+        var getUserResponse = await client.GetAsync(userPath);
 
         var user = await getUserResponse.AssertSuccessJsonAsync();
         Assert.Equal(resourceQuantity, user["resourcesQuantity"][resourceName].AssertInteger());
