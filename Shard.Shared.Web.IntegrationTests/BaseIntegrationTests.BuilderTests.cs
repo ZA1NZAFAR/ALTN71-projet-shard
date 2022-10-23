@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 namespace Shard.Shared.Web.IntegrationTests;
 
@@ -87,7 +87,8 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
         {
             builderId = builder.Id,
-            type = "mine"
+            type = "mine",
+            resourceCategory = "solid"
         });
 
         var building = (await response.AssertSuccessJsonAsync()).AssertObject();
@@ -105,13 +106,54 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
         {
             builderId = builder.Id,
-            type = "mine"
+            type = "mine",
+            resourceCategory = "solid"
         });
         await response.AssertSuccessStatusCode();
 
         var building = (await response.AssertSuccessJsonAsync()).AssertObject();
         Assert.Equal(builder.System, building["system"].AssertString());
         Assert.Equal(builder.Planet, building["planet"].AssertString());
+    }
+
+    [Theory]
+    [Trait("grading", "true")]
+    [Trait("version", "4")]
+    [InlineData("solid")]
+    [InlineData("liquid")]
+    [InlineData("gaseous")]
+    public async Task BuildingMineOfGivenResourceKindReturnsMineWithGivenResourceKind(string resourceCategory)
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine",
+            resourceCategory
+        });
+        await response.AssertSuccessStatusCode();
+
+        var building = (await response.AssertSuccessJsonAsync()).AssertObject();
+        Assert.Equal(resourceCategory, building["resourceCategory"].AssertString());
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "4")]
+    public async Task BuildingMineOfInvalidResourceKindReturns400()
+    {
+        using var client = CreateClient();
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "mine",
+            resourceCategory = "carbon"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -137,7 +179,8 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         var response = await client.PostAsJsonAsync($"{userPath}x/buildings", new
         {
             builderId = builder.Id,
-            type = "mine"
+            type = "mine",
+            resourceCategory = "solid"
         });
         await response.AssertStatusEquals(HttpStatusCode.NotFound);
     }
