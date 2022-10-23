@@ -4,7 +4,6 @@ namespace Shard.Shared.Web.IntegrationTests;
 
 public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 {
-
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "2")]
