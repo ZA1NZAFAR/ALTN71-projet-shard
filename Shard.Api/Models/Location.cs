@@ -6,7 +6,7 @@ public class Location
 {
     public string system { get; set; }
     public string planet { get; set; }
-    public Dictionary<string, int> resourcesQuantity { get; }
+    public Dictionary<string, int> resourcesQuantity { get; set; }
 
     public Location(string syste, PlanetSpecification planetName)
     {

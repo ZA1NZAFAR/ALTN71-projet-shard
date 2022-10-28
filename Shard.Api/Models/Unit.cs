@@ -10,6 +10,11 @@ public class Vaisseau
     public string system { get; set; }
     public string planet { get; set; }
     
+    public string destinationPlanet { get; set; }
+    public string destinationSystem { get; set; }
+    
+    public DateTime lastUpdate { get; set; }
+    
     
     SystemSpecification SystemSpecification { get; set; }
 

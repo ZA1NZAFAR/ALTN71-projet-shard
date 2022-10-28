@@ -4,6 +4,7 @@ using System.Web.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Services;
+using Shard.Shared.Core;
 
 namespace Shard.Api.Controllers;
 
@@ -11,11 +12,14 @@ public class UserController : Controller
 {
     private readonly ICelestialService _celestialService;
     private readonly IUserService _userService;
+    private readonly IClock _clock;
+    
 
-    public UserController(ICelestialService celestialService, IUserService userService)
+    public UserController(ICelestialService celestialService, IUserService userService, IClock clock)
     {
         _celestialService = celestialService;
         _userService = userService;
+        _clock = clock;
     }
 
     [HttpPut("users/{userId}")]
@@ -36,8 +40,11 @@ public class UserController : Controller
         }
 
         _userService.addUser(user);
+        var system = _celestialService.getRandomSystem();
         _userService.addVaisseauUser(
-            new Vaisseau(Guid.NewGuid().ToString(), "scout", _celestialService.getRandomSystem()), user);
+            new Vaisseau(Guid.NewGuid().ToString(), "scout", system), user);
+        _userService.addVaisseauUser(
+            new Vaisseau(Guid.NewGuid().ToString(), "builder", system), user);
 
         return user;
     }
@@ -79,7 +86,7 @@ public class UserController : Controller
     [HttpPut("users/{userId}/units/{unitId}")]
     public ActionResult<Vaisseau> updateUnit(string userId, string unitId, [FromBody] Vaisseau vaisseau)
     {
-        var x = _userService.updateUnitOfUserById(userId, unitId, vaisseau);
+        var x = _userService.updateUnitOfUserById(userId, unitId, vaisseau, _clock);
         return Json(x);
     }
 
@@ -87,8 +94,20 @@ public class UserController : Controller
     public ActionResult<Location> deleteUnitLocation(string userId, string unitId)
     {
         Vaisseau temp = _userService.getUnitOfUserById(userId, unitId);
+
         Location l =  new Location(temp.system, _celestialService.getPlanetOfSystem(temp.system, temp.planet));
 
+        if (temp.type.Equals("builder"))
+        {
+            l.resourcesQuantity = null;
+        }
         return l;
+    }
+    
+    [HttpPost("users/{userId}/buildings")]
+    public ActionResult<Building> createBuilding(string userId, [FromBody] Building building)
+    {
+        var x = _userService.createBuilding(userId, building);
+        return Json(x);
     }
 }
