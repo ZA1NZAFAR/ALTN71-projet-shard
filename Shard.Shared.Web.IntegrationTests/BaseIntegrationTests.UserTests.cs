@@ -89,35 +89,4 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal("47", user["id"].AssertString());
         Assert.Equal("johny", user["pseudo"].AssertString());
 	}
-
-    [Fact]
-    [Trait("grading", "true")]
-    [Trait("version", "3")]
-    public async Task CanFetchResourcesFromNewlyCreatedUser()
-    {
-        using var client = CreateClient();
-        using var getUserResponse = await client.GetAsync(await CreateNewUserPath());
-
-        var user = await getUserResponse.AssertSuccessJsonAsync();
-        AssertResourcesQuantity(user.AssertObject());
-    }
-
-    [Theory]
-    [InlineData("aluminium", 0)]
-    [InlineData("carbon", 20)]
-    [InlineData("gold", 0)]
-    [InlineData("iron", 10)]
-    [InlineData("oxygen", 50)]
-    [InlineData("titanium", 0)]
-    [InlineData("water", 50)]
-    [Trait("grading", "true")]
-    [Trait("version", "3")]
-    public async Task GivesBasicResourcesToNewUser(string resourceName, int resourceQuantity)
-    {
-        using var client = CreateClient();
-        using var getUserResponse = await client.GetAsync(await CreateNewUserPath());
-
-        var user = await getUserResponse.AssertSuccessJsonAsync();
-        Assert.Equal(resourceQuantity, user["resourcesQuantity"][resourceName].AssertInteger());
-    }
 }
