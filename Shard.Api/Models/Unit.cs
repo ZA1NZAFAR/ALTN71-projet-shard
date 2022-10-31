@@ -9,23 +9,16 @@ public class Vaisseau
     public string type { get; set; }
     public string system { get; set; }
     public string planet { get; set; }
-    
+
     public string destinationPlanet { get; set; }
     public string destinationSystem { get; set; }
-    
-    public DateTime lastUpdate { get; set; }
-    
-    
-    SystemSpecification SystemSpecification { get; set; }
 
-    public Vaisseau(string id, string type, SystemSpecification systemSpecification)
-    {
-        this.id = id;
-        this.type = type;
-        this.system = systemSpecification.Name;
-        this.planet = systemSpecification.Planets[new Random().Next(0, systemSpecification.Planets.Count)].Name;
-    }
+    public DateTime lastUpdate { get; set; }
+
+
+    SystemSpecification SystemSpecification { get; set; }
     
+
     [JsonConstructor]
     public Vaisseau(string id, string type, string system, string planet)
     {
@@ -39,7 +32,7 @@ public class Vaisseau
     {
         SystemSpecification = systemSpecification;
     }
-    
+
     public string toString()
     {
         return "Vaisseau " + id + " de type " + type + " dans le système " + system + " sur la planète " + planet;

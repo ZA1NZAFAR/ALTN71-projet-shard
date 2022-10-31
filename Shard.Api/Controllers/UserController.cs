@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
 using System.Web.Helpers;
+using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Services;
@@ -13,7 +14,7 @@ public class UserController : Controller
     private readonly ICelestialService _celestialService;
     private readonly IUserService _userService;
     private readonly IClock _clock;
-    
+
 
     public UserController(ICelestialService celestialService, IUserService userService, IClock clock)
     {
@@ -42,9 +43,9 @@ public class UserController : Controller
         _userService.addUser(user);
         var system = _celestialService.getRandomSystem();
         _userService.addVaisseauUser(
-            new Vaisseau(Guid.NewGuid().ToString(), "scout", system), user);
+            new Vaisseau(Guid.NewGuid().ToString(), "scout", system.Name, null), user);
         _userService.addVaisseauUser(
-            new Vaisseau(Guid.NewGuid().ToString(), "builder", system), user);
+            new Vaisseau(Guid.NewGuid().ToString(), "builder", system.Name, null), user);
 
         return user;
     }
@@ -87,27 +88,44 @@ public class UserController : Controller
     public ActionResult<Vaisseau> updateUnit(string userId, string unitId, [FromBody] Vaisseau vaisseau)
     {
         var x = _userService.updateUnitOfUserById(userId, unitId, vaisseau, _clock);
-        return Json(x);
+        return x;
     }
 
     [HttpGet("users/{userId}/units/{unitId}/location")]
-    public ActionResult<Location> deleteUnitLocation(string userId, string unitId)
+    public ActionResult<Location> getUnitLocation(string userId, string unitId)
     {
         Vaisseau temp = _userService.getUnitOfUserById(userId, unitId);
 
-        Location l =  new Location(temp.system, _celestialService.getPlanetOfSystem(temp.system, temp.planet));
+        Location l = new Location(temp.system, _celestialService.getPlanetOfSystem(temp.system, temp.planet));
 
         if (temp.type.Equals("builder"))
         {
             l.resourcesQuantity = null;
         }
+
         return l;
     }
-    
+
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> createBuilding(string userId, [FromBody] Building building)
     {
-        var x = _userService.createBuilding(userId, building);
-        return Json(x);
+        if (_userService.getUser(userId) == null)
+            return new NotFoundResult();
+
+        if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty() ||
+            !building.Type.Equals("mine"))
+        {
+            return BadRequest();
+        }
+
+        try
+        {
+            var x = _userService.createBuilding(userId, building);
+            return x;
+        }
+        catch (Exception e)
+        {
+            return BadRequest();
+        }
     }
 }
