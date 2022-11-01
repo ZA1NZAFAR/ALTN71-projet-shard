@@ -7,6 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="expectedTestSector.json" />
+    <None Remove="expectedTestSectorWithResources.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="expectedTestSector.json" />
+    <EmbeddedResource Include="expectedTestSectorWithResources.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="3.1.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

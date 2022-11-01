@@ -34,6 +34,10 @@ public abstract partial class BaseIntegrationTests<TEntryPoint, TWebApplicationF
                 {
                     services.AddSingleton<IClock>(fakeClock);	
                     services.AddSingleton<IStartupFilter>(fakeClock);
+                    services.Configure<MapGeneratorOptions>(options =>
+                    {
+                        options.Seed = "Test application";
+                    });
                 });
             }); 
     } 
