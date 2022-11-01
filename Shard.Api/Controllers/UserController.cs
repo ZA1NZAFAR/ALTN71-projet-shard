@@ -2,7 +2,9 @@
 using System.Text.RegularExpressions;
 using System.Web.Helpers;
 using System.Web.WebPages;
+using JetBrains.ReSharper.TestRunner.Abstractions.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Shard.Api.Helpers;
 using Shard.Api.Models;
 using Shard.Api.Services;
 using Shard.Shared.Core;
@@ -73,7 +75,7 @@ public class UserController : Controller
     }
 
     [HttpGet("users/{userId}/units/{unitId}")]
-    public ActionResult<Vaisseau> getUnit(string userId, string unitId)
+    public async Task<ActionResult<Vaisseau>> getUnit(string userId, string unitId)
     {
         var x = _userService.getUnitOfUserById(userId, unitId);
         if (x == null)
@@ -81,7 +83,13 @@ public class UserController : Controller
             return new NotFoundResult();
         }
 
-        return Json(x);
+
+        if (x.moveTask != null && x.moveTaskTime != null)
+        {
+            await x.moveTask;
+        }
+
+        return x;
     }
 
     [HttpPut("users/{userId}/units/{unitId}")]

@@ -14,6 +14,8 @@ public class Vaisseau
     public string destinationSystem { get; set; }
 
     public DateTime lastUpdate { get; set; }
+    public Task moveTask { get; set; }
+    public int moveTaskTime { get; set; }
 
 
     SystemSpecification SystemSpecification { get; set; }

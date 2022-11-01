@@ -19,64 +19,66 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    private Dictionary<User, List<Vaisseau>> _usersDB;
+    private Dictionary<User, List<Vaisseau>> _usersUnitsDB;
     private Dictionary<User, List<Building>> _usersBuildingsDB;
 
     public UserService()
     {
-        _usersDB = new Dictionary<User, List<Vaisseau>>();
+        _usersUnitsDB = new Dictionary<User, List<Vaisseau>>();
         _usersBuildingsDB = new Dictionary<User, List<Building>>();
     }
 
     public void addUser(User user)
     {
-        if (!_usersDB.ContainsKey(user))
+        if (!_usersUnitsDB.ContainsKey(user))
         {
-            _usersDB.Add(user, new List<Vaisseau>());
+            _usersUnitsDB.Add(user, new List<Vaisseau>());
         }
     }
 
     public void addVaisseauUser(Vaisseau vaisseau, User user)
     {
-        if (_usersDB.ContainsKey(user))
+        if (_usersUnitsDB.ContainsKey(user))
         {
-            _usersDB[user].Add(vaisseau);
+            _usersUnitsDB[user].Add(vaisseau);
         }
     }
 
     public User getUser(string userId)
-        => _usersDB.Keys.FirstOrDefault(u => u.id == userId) ?? null;
+        => _usersUnitsDB.Keys.FirstOrDefault(u => u.id == userId) ?? null;
 
 
     public List<Vaisseau> getUnitsOfUserById(string userId)
     {
-        var user = _usersDB.Keys.FirstOrDefault(u => u.id == userId);
-        return user != null ? _usersDB[user] : null;
+        var user = _usersUnitsDB.Keys.FirstOrDefault(u => u.id == userId);
+        return user != null ? _usersUnitsDB[user] : null;
     }
 
     public Vaisseau getUnitOfUserById(string userId, string unitId)
     {
-        var user = _usersDB.Keys.First(u => u.id == userId);
-        return user != null ? _usersDB[user].FirstOrDefault(u => u.id == unitId) ?? null : null;
+        var user = _usersUnitsDB.Keys.First(u => u.id == userId);
+        return user != null ? _usersUnitsDB[user].FirstOrDefault(u => u.id == unitId) ?? null : null;
     }
 
     public Vaisseau? updateUnitOfUserById(string userId, string unitId, Vaisseau vaisseau, IClock clock)
     {
-        var user = _usersDB.Keys.First(u => u.id == userId);
+        var user = _usersUnitsDB.Keys.First(u => u.id == userId);
         if (user != null)
         {
-            var unit = _usersDB[user].First(u => u.id == unitId);
+            var unit = _usersUnitsDB[user].First(u => u.id == unitId);
             if (unit == null)
             {
                 return null;
             }
 
-            _usersDB[user].Remove(unit);
+            _usersUnitsDB[user].Remove(unit);
             unit.destinationSystem = vaisseau.destinationSystem;
             unit.destinationPlanet = vaisseau.destinationPlanet;
-            _usersDB[user].Add(unit);
+            _usersUnitsDB[user].Add(unit);
+            
 
-            moveUnitBackgroundTask(unit, user, clock);
+            unit.moveTask = moveUnitBackgroundTask(unit, user, clock);
+            unit.lastUpdate = clock.Now;
             return vaisseau;
         }
 
@@ -86,34 +88,40 @@ public class UserService : IUserService
     //background async unit move
     public async Task moveUnitBackgroundTask(Vaisseau unit, User user, IClock clock)
     {
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
-            var tmp = _usersDB[user].First(u => u.id == unit.id);
+            var tmp = _usersUnitsDB[user].First(u => u.id == unit.id);
             if ((tmp.system.IsNullOrEmpty()) ||
-                (!tmp.destinationSystem.IsNullOrEmpty() && !tmp.system.Equals(tmp.destinationPlanet))
+                (!tmp.destinationSystem.IsNullOrEmpty() && !tmp.system.Equals(tmp.destinationSystem))
                )
             {
-                clock.Delay(60000);
+                tmp.moveTaskTime += 60000;
+                await clock.Delay(60000);
                 tmp.system = tmp.destinationSystem;
                 tmp.destinationSystem = null;
+                tmp.lastUpdate = clock.Now;
+
             }
 
             if (tmp.planet.IsNullOrEmpty() ||
                 (!tmp.destinationPlanet.IsNullOrEmpty() && !tmp.planet.Equals(tmp.destinationPlanet)))
             {
-                clock.Delay(15000);
+                tmp.moveTaskTime += 15000;
+                await clock.Delay(15000);
                 tmp.planet = tmp.destinationPlanet;
                 tmp.destinationPlanet = null;
+                tmp.lastUpdate = clock.Now;
+
             }
         });
     }
 
     public ActionResult<Building> createBuilding(string userId, Building building)
     {
-        var user = _usersDB.Keys.First(u => u.id == userId);
+        var user = _usersUnitsDB.Keys.First(u => u.id == userId);
         if (user != null)
         {
-            var unit = _usersDB[user].Find(u => u.id == building.BuilderId);
+            var unit = _usersUnitsDB[user].Find(u => u.id == building.BuilderId);
             if (unit != null)
             {
                 if (unit.planet.IsNullOrEmpty() || unit.system.IsNullOrEmpty() || unit.type != "builder")
