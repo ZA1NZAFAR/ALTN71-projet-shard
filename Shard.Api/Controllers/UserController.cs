@@ -39,11 +39,11 @@ public class UserController : Controller
             return BadRequest();
         }
 
-        _userService.addUser(user);
+        _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();
-        _userService.addUnitUser(
+        _userService.AddUnitUser(
             new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null), user);
-        _userService.addUnitUser(
+        _userService.AddUnitUser(
             new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null), user);
 
         return user;
@@ -53,7 +53,7 @@ public class UserController : Controller
     [HttpGet("users/{userId}")]
     public ActionResult<User> getUser(string userId)
     {
-        var res = _userService.getUser(userId);
+        var res = _userService.GetUser(userId);
         if (res == null)
         {
             return new NotFoundResult();
@@ -65,14 +65,14 @@ public class UserController : Controller
     [HttpGet("users/{userId}/units")]
     public ActionResult<List<Unit>> getAllUnits(string userId)
     {
-        var x = _userService.getUnitsOfUserById(userId);
+        var x = _userService.GetUnitsOfUserById(userId);
         return x;
     }
 
     [HttpGet("users/{userId}/units/{unitId}")]
     public async Task<ActionResult<Unit>> getUnit(string userId, string unitId)
     {
-        var x = _userService.getUnitOfUserById(userId, unitId);
+        var x = _userService.GetUnitOfUserById(userId, unitId);
         if (x == null)
         {
             return new NotFoundResult();
@@ -93,14 +93,14 @@ public class UserController : Controller
     [HttpPut("users/{userId}/units/{unitId}")]
     public ActionResult<Unit> updateUnit(string userId, string unitId, [FromBody] Unit unit)
     {
-        var x = _userService.updateUnitOfUserById(userId, unitId, unit, _clock);
+        var x = _userService.UpdateUnitOfUserById(userId, unitId, unit, _clock);
         return x;
     }
 
     [HttpGet("users/{userId}/units/{unitId}/location")]
     public ActionResult<Location> getUnitLocation(string userId, string unitId)
     {
-        Unit temp = _userService.getUnitOfUserById(userId, unitId);
+        Unit temp = _userService.GetUnitOfUserById(userId, unitId);
 
         Location l = new Location(temp.System, _celestialService.GetPlanetOfSystem(temp.System, temp.Planet));
 
@@ -115,7 +115,7 @@ public class UserController : Controller
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> createBuilding(string userId, [FromBody] Building building)
     {
-        if (_userService.getUser(userId) == null)
+        if (_userService.GetUser(userId) == null)
             return new NotFoundResult();
 
         if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty() ||
@@ -126,7 +126,7 @@ public class UserController : Controller
 
         try
         {
-            var x = _userService.createBuilding(userId, building);
+            var x = _userService.CreateBuilding(userId, building);
             return x;
         }
         catch (Exception e)
