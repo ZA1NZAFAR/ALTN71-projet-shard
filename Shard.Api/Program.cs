@@ -1,4 +1,5 @@
 using Shard.Api.Services;
+using Shard.Shared.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ICelestialService, CelestialService>();
 builder.Services.AddSingleton<IUserService, UserService>();
+builder.Services.AddSingleton<IClock, SystemClock>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

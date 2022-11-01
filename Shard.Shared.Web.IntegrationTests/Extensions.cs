@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Net;
+using System.Net.Http.Json;
+using System.Text;
 using Xunit.Sdk;
 
 namespace Shard.Shared.Web.IntegrationTests;
@@ -16,6 +18,15 @@ public static class Extensions
         var token = await JToken.LoadAsync(jsonReader);
         Assert.IsAssignableFrom<T>(token);
         return (T)token;
+    }
+
+    public static Task<HttpResponseMessage> PutTestEntityAsync<T>(this HttpClient client, string uri, T unit)
+        where T : Unit
+    {
+        return client.PutAsync(uri, new StringContent(
+            unit.Json.ToString(),
+            Encoding.UTF8,
+            "application/json"));
     }
 
     public static async Task AssertSuccessStatusCode(this HttpResponseMessage response)

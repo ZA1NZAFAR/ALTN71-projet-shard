@@ -12,7 +12,7 @@ stages:
   - archive
 
 variables:
-  VERSION: '2'
+  VERSION: '3'
 
 compile:
   stage: compile
@@ -24,13 +24,21 @@ compile:
     paths: 
       - "*/bin/*/*/*"
 
-.test:
-  stage: test
+.limitted:
   allow_failure: true
-  when: delayed
-  start_in: 1 day
   interruptible: true
-  timeout: 3 minutes
+  timeout: 6 minutes
+  rules:
+  - if: $CI_COMMIT_BRANCH == "prod"
+    when: on_success
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+    when: delayed
+    start_in: 1 day
+  - when: on_success
+
+.test:
+  extends: .limitted
+  stage: test
   script:
     - dotnet test --logger trx --filter "$TEST_FILTER" shard.sln
   after_script:
@@ -54,18 +62,14 @@ test:full:
   
 test:coverage:
   stage: test
-  allow_failure: true
-  when: delayed
-  start_in: 1 day
-  interruptible: true
-  timeout: 3 minutes
+  extends: .limitted
   before_script:
     - dotnet tool install -g dotnet-reportgenerator-globaltool
   script:
     - dotnet test --filter "grading!=true" --settings coverlet.runsettings shard.sln
   after_script:
     - /root/.dotnet/tools/reportgenerator "-reports:*/TestResults/*/coverage.cobertura.xml" "-targetdir:./coverage" "-reporttypes:Html"
-    - cat coverage/index.htm | grep "<tr><th>Line coverage:</th><td>" | sed -E "s/^.*<td>(([[:digit:]]|\.)+)%.*$/\1/" | awk '{ print $1/100 }' > coverage/line_rate.txt
+    - cat coverage/index.htm | tr '\n' ' ' | sed -E "s/^.*Line coverage:<\/th>\\s*<td[^>]*>(([[:digit:]]|\.)+)%.*$/\1/" | awk '{ print $1/100 }' > coverage/line_rate.txt
   artifacts:
     when: always
     paths: 

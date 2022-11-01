@@ -4,15 +4,15 @@ namespace Shard.Api.Models;
 
 public class User
 {
-    public string id { get; set; }
-    public string pseudo { get; set; }
-    public DateTime dateOfCreation { get; set; }
+    public string Id { get; set; }
+    public string Pseudo { get; set; }
+    public DateTime DateOfCreation { get; set; }
 
     [JsonConstructor]
     public User(string id, string pseudo)
     {
-        this.id = id;
-        this.pseudo = pseudo;
-        this.dateOfCreation = DateTime.Now;
+        this.Id = id;
+        this.Pseudo = pseudo;
+        this.DateOfCreation = DateTime.Now;
     }
 }
