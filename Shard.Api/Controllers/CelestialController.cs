@@ -14,22 +14,22 @@ public class CelestialController : Controller
 
     [HttpGet("Systems")]
     public List<SystemContainingResourcelessPlanets> GetAllSystemsAndPlanetsController()
-        => _celestialService.getAllSystemsAndPlanets().Select(systemAndPlanet => new SystemContainingResourcelessPlanets(systemAndPlanet))
+        => _celestialService.GetAllSystemsAndPlanets().Select(systemAndPlanet => new SystemContainingResourcelessPlanets(systemAndPlanet))
             .ToList();
 
 
     [HttpGet("Systems/{systemName}")]
     public SystemContainingResourcelessPlanets GetSystemAndPlanetsController(string systemName)
-        => new(_celestialService.getSystemAndPlanets(systemName));
+        => new(_celestialService.GetSystemAndPlanets(systemName));
 
 
     [HttpGet("Systems/{systemName}/planets")]
     public List<ResourcelessPlanet> GetPlanetsOfSystemController(string systemName)
-        => _celestialService.getPlanetsOfSystem(systemName)
+        => _celestialService.GetPlanetsOfSystem(systemName)
             .Select(planetSpecification => new ResourcelessPlanet(planetSpecification)).ToList();
 
 
     [HttpGet("Systems/{systemName}/planets/{planetName}")]
     public ResourcelessPlanet GetPlanetOfSystemController(string systemName, string planetName) =>
-        new(_celestialService.getPlanetOfSystem(systemName, planetName));
+        new(_celestialService.GetPlanetOfSystem(systemName, planetName));
 }

@@ -4,17 +4,17 @@ namespace Shard.Api.Services;
 
 public interface ICelestialService
 {
-    public IReadOnlyList<SystemSpecification> getAllSystemsAndPlanets();
-    SystemSpecification getSystemAndPlanets(string systemName);
-    IReadOnlyList<PlanetSpecification> getPlanetsOfSystem(string systemName);
-    PlanetSpecification getPlanetOfSystem(string systemName, string planetName);
-    SystemSpecification getRandomSystem();
+    public IReadOnlyList<SystemSpecification> GetAllSystemsAndPlanets();
+    SystemSpecification GetSystemAndPlanets(string systemName);
+    IReadOnlyList<PlanetSpecification> GetPlanetsOfSystem(string systemName);
+    PlanetSpecification GetPlanetOfSystem(string systemName, string planetName);
+    SystemSpecification GetRandomSystem();
 }
 
 public class CelestialService : ICelestialService
 {
-    static MapGenerator _mapGenerator;
-    static SectorSpecification _universe;
+    private MapGenerator _mapGenerator;
+    private SectorSpecification _universe;
 
     public CelestialService()
     {
@@ -24,26 +24,26 @@ public class CelestialService : ICelestialService
         _universe = _mapGenerator.Generate();
     }
 
-    public IReadOnlyList<SystemSpecification> getAllSystemsAndPlanets()
+    public IReadOnlyList<SystemSpecification> GetAllSystemsAndPlanets()
     {
         var sys = _universe.Systems;
         return sys;
     }
 
-    public SystemSpecification getSystemAndPlanets(string systemName)
+    public SystemSpecification GetSystemAndPlanets(string systemName)
     {
         var sys = _universe.Systems;
         return sys.FirstOrDefault(x => x.Name == systemName);
     }
 
-    public IReadOnlyList<PlanetSpecification> getPlanetsOfSystem(string systemName)
+    public IReadOnlyList<PlanetSpecification> GetPlanetsOfSystem(string systemName)
     {
         var sys = _universe.Systems;
         var system = sys.FirstOrDefault(x => x.Name == systemName);
         return system.Planets;
     }
 
-    public PlanetSpecification getPlanetOfSystem(string systemName, string planetName)
+    public PlanetSpecification GetPlanetOfSystem(string systemName, string planetName)
     {
         var sys = _universe.Systems;
         var system = sys.FirstOrDefault(x => x.Name == systemName);
@@ -51,7 +51,7 @@ public class CelestialService : ICelestialService
         return planet;
     }
 
-    public SystemSpecification getRandomSystem()
+    public SystemSpecification GetRandomSystem()
     {
         var sys = _universe.Systems;
         var system = sys.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
