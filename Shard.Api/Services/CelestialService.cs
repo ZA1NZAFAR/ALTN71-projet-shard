@@ -13,15 +13,14 @@ public interface ICelestialService
 
 public class CelestialService : ICelestialService
 {
-    private MapGenerator _mapGenerator;
-    private SectorSpecification _universe;
+    private readonly SectorSpecification _universe;
 
     public CelestialService()
     {
         MapGeneratorOptions mapGeneratorOptions = new MapGeneratorOptions();
         mapGeneratorOptions.Seed = "TheUltimateSeed";
-        _mapGenerator = new MapGenerator(mapGeneratorOptions);
-        _universe = _mapGenerator.Generate();
+        var mapGenerator = new MapGenerator(mapGeneratorOptions);
+        _universe = mapGenerator.Generate();
     }
 
     public IReadOnlyList<SystemSpecification> GetAllSystemsAndPlanets()

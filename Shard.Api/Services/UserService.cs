@@ -17,76 +17,76 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    private Dictionary<User, List<Unit>> _usersUnitsDB;
-    private Dictionary<User, List<Building>> _usersBuildingsDB;
+    private readonly Dictionary<User, List<Unit>> _usersUnitsDb;
+    private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
 
     public UserService()
     {
-        _usersUnitsDB = new Dictionary<User, List<Unit>>();
-        _usersBuildingsDB = new Dictionary<User, List<Building>>();
+        _usersUnitsDb = new Dictionary<User, List<Unit>>();
+        _usersBuildingsDb = new Dictionary<User, List<Building>>();
     }
 
     public void AddUser(User user)
     {
-        if (!_usersUnitsDB.ContainsKey(user))
+        if (!_usersUnitsDb.ContainsKey(user))
         {
-            _usersUnitsDB.Add(user, new List<Unit>());
+            _usersUnitsDb.Add(user, new List<Unit>());
         }
     }
 
     public void AddUnitUser(Unit unit, User user)
     {
-        if (_usersUnitsDB.ContainsKey(user))
+        if (_usersUnitsDb.ContainsKey(user))
         {
-            _usersUnitsDB[user].Add(unit);
+            _usersUnitsDb[user].Add(unit);
         }
     }
 
     public User GetUser(string userId)
-        => _usersUnitsDB.Keys.FirstOrDefault(u => u.Id == userId) ?? null;
+        => _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId) ?? null;
 
 
     public List<Unit> GetUnitsOfUserById(string userId)
     {
-        var user = _usersUnitsDB.Keys.FirstOrDefault(u => u.Id == userId);
-        return user != null ? _usersUnitsDB[user] : null;
+        var user = _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId);
+        return user != null ? _usersUnitsDb[user] : null;
     }
 
     public Unit GetUnitOfUserById(string userId, string unitId)
     {
-        var user = _usersUnitsDB.Keys.First(u => u.Id == userId);
-        return user != null ? _usersUnitsDB[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
+        return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
     public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
     {
-        var user = _usersUnitsDB.Keys.First(u => u.Id == userId);
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
         {
-            var unit = _usersUnitsDB[user].First(u => u.Id == unitId);
+            var unit = _usersUnitsDb[user].First(u => u.Id == unitId);
             if (unit == null)
             {
                 return null;
             }
 
-            _usersUnitsDB[user].Remove(unit);
+            _usersUnitsDb[user].Remove(unit);
             unit.DestinationSystem = unitUpdated.DestinationSystem;
             unit.DestinationPlanet = unitUpdated.DestinationPlanet;
-            _usersUnitsDB[user].Add(unit);
+            _usersUnitsDb[user].Add(unit);
 
 
-            unit.MoveTask = moveUnitBackgroundTask(unit, user, clock);
+            unit.MoveTask = MoveUnitBackgroundTask(unit, user, clock);
             unit.LastUpdate = clock.Now;
             return unitUpdated;
         }
         return null;
     }
 
-    private async Task moveUnitBackgroundTask(Unit unit, User user, IClock clock)
+    private async Task MoveUnitBackgroundTask(Unit unit, User user, IClock clock)
     {
         await Task.Run(async () =>
         {
-            var tmp = _usersUnitsDB[user].First(u => u.Id == unit.Id);
+            var tmp = _usersUnitsDb[user].First(u => u.Id == unit.Id);
             if ((tmp.System == null) ||
                 (tmp.DestinationSystem != null && !tmp.System.Equals(tmp.DestinationSystem))
                )
@@ -112,10 +112,10 @@ public class UserService : IUserService
 
     public ActionResult<Building> CreateBuilding(string userId, Building building)
     {
-        var user = _usersUnitsDB.Keys.First(u => u.Id == userId);
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
         {
-            var unit = _usersUnitsDB[user].Find(u => u.Id == building.BuilderId);
+            var unit = _usersUnitsDb[user].Find(u => u.Id == building.BuilderId);
             if (unit != null)
             {
                 if (unit.Planet == null || unit.System == null || unit.Type != "builder")
@@ -125,10 +125,10 @@ public class UserService : IUserService
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
-                if (_usersBuildingsDB.ContainsKey(user))
-                    _usersBuildingsDB[user].Add(building);
+                if (_usersBuildingsDb.ContainsKey(user))
+                    _usersBuildingsDb[user].Add(building);
                 else
-                    _usersBuildingsDB.Add(user, new List<Building> { building });
+                    _usersBuildingsDb.Add(user, new List<Building> { building });
 
                 return building;
             }
