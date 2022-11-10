@@ -1,4 +1,4 @@
-﻿using Shard.Shared.Web.IntegrationTests.TestEntities;
+using Shard.Shared.Web.IntegrationTests.TestEntities;
 using System.Net;
 
 namespace Shard.Shared.Web.IntegrationTests
@@ -218,6 +218,7 @@ namespace Shard.Shared.Web.IntegrationTests
         }
 
         [Fact]
+        [Trait("grading", "true")]
         public async Task BuildingMineThenWaiting6MinIncreaseResource()
         {
             using var client = CreateClient();
