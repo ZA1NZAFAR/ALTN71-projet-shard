@@ -38,6 +38,14 @@ public class UserController : Controller
         {
             return BadRequest();
         }
+        
+        user.ResourcesQuantity = new Dictionary<ResourceKind, int>(  )
+        {
+            { ResourceKind.Carbon, 20 },
+            { ResourceKind.Iron, 10 },
+            { ResourceKind.Oxygen, 50 },
+            { ResourceKind.Water, 50 }
+        };
 
         _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();

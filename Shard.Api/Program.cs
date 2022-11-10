@@ -1,3 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Shard.Api.Services;
 using Shard.Shared.Core;
 
@@ -13,6 +17,14 @@ builder.Services.AddSingleton<ICelestialService, CelestialService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 
+// json return serialization to camelCase
+builder.Services.AddControllers()
+    .AddJsonOptions(options => { options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; });
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    });
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
