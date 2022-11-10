@@ -12,7 +12,8 @@ public interface IUserService
     List<Unit> GetUnitsOfUserById(string userId);
     Unit GetUnitOfUserById(string userId, string unitId);
     Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock);
-    ActionResult<Building> CreateBuilding(string userId, Building building);
+    ActionResult<Building> CreateBuilding(string userId, Building building, IClock clock);
+    ActionResult<List<Building>> GetBuildingsOfUserById(string userId);
 }
 
 public class UserService : IUserService
@@ -110,7 +111,7 @@ public class UserService : IUserService
         });
     }
 
-    public ActionResult<Building> CreateBuilding(string userId, Building building)
+    public ActionResult<Building> CreateBuilding(string userId, Building building, IClock clock)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
@@ -125,6 +126,9 @@ public class UserService : IUserService
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
+                building.EstimatedBuildTime = clock.Now.AddMinutes(5);
+                
+                building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
                 if (_usersBuildingsDb.ContainsKey(user))
                     _usersBuildingsDb[user].Add(building);
                 else
@@ -132,6 +136,30 @@ public class UserService : IUserService
 
                 return building;
             }
+        }
+        throw new Exception("User not found");
+    }
+    
+    private async Task BuildBuildingBackgroundTask(Building building, User user, IClock clock)
+    {
+        await Task.Run(async () =>
+        {
+            var tmp = _usersBuildingsDb[user].First(u => u.Id == building.Id);
+            if (tmp != null)
+            {
+                await clock.Delay(TimeSpan.FromMinutes(5));
+                building.IsBuilt = true;
+            }
+        });
+    }
+
+    public ActionResult<List<Building>> GetBuildingsOfUserById(string userId)
+    {
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId) ?? null;
+        if (user != null)
+        {
+            if (_usersBuildingsDb.ContainsKey(user))
+                return _usersBuildingsDb[user];
         }
         throw new Exception("User not found");
     }

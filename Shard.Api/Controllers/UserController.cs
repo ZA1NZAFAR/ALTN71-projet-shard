@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
 using System.Web.WebPages;
+using JetBrains.ReSharper.TestRunner.Abstractions.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Services;
@@ -38,8 +39,8 @@ public class UserController : Controller
         {
             return BadRequest();
         }
-        
-        user.ResourcesQuantity = new Dictionary<ResourceKind, int>(  )
+
+        user.ResourcesQuantity = new Dictionary<ResourceKind, int>()
         {
             { ResourceKind.Carbon, 20 },
             { ResourceKind.Iron, 10 },
@@ -134,12 +135,59 @@ public class UserController : Controller
 
         try
         {
-            var x = _userService.CreateBuilding(userId, building);
+            var x = _userService.CreateBuilding(userId, building, _clock);
             return x;
         }
         catch (Exception ignored)
         {
             return BadRequest();
         }
+    }
+
+
+    [HttpGet("users/{userId}/buildings")]
+    public ActionResult<List<Building>> GetAllBuildings(string userId)
+    {
+        try
+        {
+            var buildings = _userService.GetBuildingsOfUserById(userId);
+            if (buildings == null)
+                throw new Exception("No buildings found");
+
+            return buildings;
+        }
+        catch (Exception e)
+        {
+            return NotFound();
+        }
+    }
+
+
+    [HttpGet("users/{userId}/buildings/{buildingId}")]
+    public async Task<ActionResult<Building>> GetBuilding(string userId, string buildingId)
+    {
+        ActionResult<List<Building>> buildings;
+        try
+        {
+            buildings = _userService.GetBuildingsOfUserById(userId);
+        }
+        catch (Exception e)
+        {
+            return NotFound();
+        }
+
+        Console.WriteLine("3");
+
+        var buildingFound = buildings.Value.FirstOrDefault(b => b.Id.Equals(buildingId)) ?? null;
+        if (buildingFound == null)
+        {
+            return NotFound();
+        }
+
+        if (buildingFound.BuildTask != null)
+        {
+            await buildingFound.BuildTask;
+        }
+        return buildingFound;
     }
 }
