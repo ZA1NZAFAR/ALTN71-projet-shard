@@ -124,6 +124,11 @@ public class UserController : Controller
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> CreateBuilding(string userId, [FromBody] Building building)
     {
+        if (!building.ResourceCategory.Equals("gaseous") && !building.ResourceCategory.Equals("solid") && !building.ResourceCategory.Equals("liquid"))
+        {
+            return BadRequest();
+        }
+
         if (_userService.GetUser(userId) == null)
             return new NotFoundResult();
 
