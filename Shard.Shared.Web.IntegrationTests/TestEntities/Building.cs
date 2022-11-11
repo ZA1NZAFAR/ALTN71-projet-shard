@@ -15,6 +15,8 @@ public record Building(JObjectAsserter Json)
     public string Id => Json["id"].AssertNonEmptyString();
     public string BaseUrl => $"users/{Id}";
     public string Type => Json["type"].AssertNonEmptyString();
+    public string System => Json["system"].AssertNonEmptyString();
+    public string Planet => Json["planet"].AssertNonEmptyString();
     public bool IsBuilt => Json["isBuilt"].AssertBoolean();
     public DateTime? EstimatedBuildTime => Json.GetPropertyOrNull("estimatedBuildTime")?.AssertNullableDateTime();
 

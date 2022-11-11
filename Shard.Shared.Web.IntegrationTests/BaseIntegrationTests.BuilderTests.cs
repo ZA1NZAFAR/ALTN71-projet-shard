@@ -194,6 +194,20 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return (userPath, builder, new Building(await response.AssertSuccessJsonAsync()));
     }
 
+    private async Task<(string, Unit, Building)> BuildStarport(HttpClient client)
+    {
+        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        {
+            builderId = builder.Id,
+            type = "starport"
+        });
+        await response.AssertSuccessStatusCode();
+
+        return (userPath, builder, new Building(await response.AssertSuccessJsonAsync()));
+    }
+
     private async Task<(string, Unit, Building)> BuildMineOn(HttpClient client, string system, string planet,
         string resourceCategory = "solid")
     {
@@ -309,4 +323,29 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "3")]
     public Task GetBuilder_IfLessOrEqualThan2secAway_WaitsUntilArrived()
         => GetUnit_IfLessOrEqualThan2secAway_WaitsUntilArrived("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task CanBuildStarportOnPlanet()
+    {
+        using var client = CreateClient();
+        var (_, builder, building) = await BuildStarport(client);
+
+        Assert.NotNull(building.Id);
+        Assert.Equal("starport", building.Type);
+        Assert.Equal(builder.System, building.System);
+        Assert.Equal(builder.Planet, building.Planet);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task StarportDoesNotContainResourceCategory()
+    {
+        using var client = CreateClient();
+        var (_, builder, building) = await BuildStarport(client);
+
+        building.Json.AssertNullOrMissingProperty("resourcesQuantity");
+    }
 }
