@@ -208,6 +208,14 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         return (userPath, builder, new Building(await response.AssertSuccessJsonAsync()));
     }
 
+    private async Task<(string, Unit, Building)> BuildAndWaitStarportAsync(HttpClient client)
+    {
+        var result = await BuildStarport(client);
+        await fakeClock.Advance(TimeSpan.FromMinutes(5));
+        return result;
+    }
+
+
     private async Task<(string, Unit, Building)> BuildMineOn(HttpClient client, string system, string planet,
         string resourceCategory = "solid")
     {
