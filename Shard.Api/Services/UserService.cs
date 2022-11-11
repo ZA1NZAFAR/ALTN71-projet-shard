@@ -148,6 +148,7 @@ public class UserService : IUserService
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
+                building.Id = Guid.NewGuid().ToString();
                 building.EstimatedBuildTime = clock.Now.AddMinutes(5);
 
                 building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
@@ -172,6 +173,7 @@ public class UserService : IUserService
             {
                 await clock.Delay(TimeSpan.FromMinutes(5));
                 building.IsBuilt = true;
+                building.EstimatedBuildTime = null;
             }
         });
     }
@@ -191,7 +193,7 @@ public class UserService : IUserService
             throw new Exception("User not found");
         if (_usersBuildingsDb.ContainsKey(user))
             return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId);
-        throw new Exception("dasdasdasdasd");
+        throw new Exception();
     }
 
     public bool unitExists(string buildingBuilderId)

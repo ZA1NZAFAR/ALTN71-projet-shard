@@ -178,7 +178,10 @@ public class UserController : Controller
     {
         try
         {
-            return _userService.GetBuildingOfUserById(userId, buildingId);
+            var building =  _userService.GetBuildingOfUserById(userId, buildingId);
+            if (building == null)
+                throw new Exception("No building found");
+            return building;
         }
         catch (Exception e)
         {
