@@ -44,7 +44,11 @@ public class UserController : Controller
             { ResourceKind.Carbon, 20 },
             { ResourceKind.Iron, 10 },
             { ResourceKind.Oxygen, 50 },
-            { ResourceKind.Water, 50 }
+            { ResourceKind.Water, 50 },
+            { ResourceKind.Aluminium, 0 },
+            { ResourceKind.Gold, 0 },
+            { ResourceKind.Titanium, 0 }
+
         };
 
         _userService.AddUser(user);
@@ -174,13 +178,22 @@ public class UserController : Controller
 
 
     [HttpGet("users/{userId}/Buildings/{buildingId}")]
-    public ActionResult<Building> GetBuilding(string userId, string buildingId)
+    public async Task<ActionResult<Building>> GetBuilding(string userId, string buildingId)
     {
         try
         {
             var building =  _userService.GetBuildingOfUserById(userId, buildingId);
             if (building == null)
                 throw new Exception("No building found");
+
+            if (building.BuildTask != null && building.EstimatedBuildTime != null)
+            {
+                if (building.EstimatedBuildTime - _clock.Now <= TimeSpan.FromSeconds(2))
+                {
+                    await building.BuildTask;
+                }
+            }
+
             return building;
         }
         catch (Exception e)
