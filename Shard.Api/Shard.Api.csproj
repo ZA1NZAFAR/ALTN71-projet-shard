@@ -16,10 +16,4 @@
     <ProjectReference Include="..\Shard.Shared.Core\Shard.Shared.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="JetBrains.ReSharper.TestRunner.Abstractions">
-      <HintPath>..\..\..\..\..\..\..\..\Applications\Rider.app\Contents\lib\ReSharperHost\TestRunner\netcoreapp3.0\JetBrains.ReSharper.TestRunner.Abstractions.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

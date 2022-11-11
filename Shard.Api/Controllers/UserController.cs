@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
 using System.Web.WebPages;
-using JetBrains.ReSharper.TestRunner.Abstractions.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Services;
