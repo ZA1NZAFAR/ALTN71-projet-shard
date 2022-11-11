@@ -13,7 +13,9 @@ public interface IUserService
     Unit GetUnitOfUserById(string userId, string unitId);
     Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock);
     ActionResult<Building> CreateBuilding(string userId, Building building, IClock clock);
-    ActionResult<List<Building>> GetBuildingsOfUserById(string userId);
+    List<Building> GetBuildingsOfUserById(string userId);
+    Building GetBuildingOfUserById(string userId, string buildingId);
+    bool unitExists(string buildingBuilderId);
 }
 
 public class UserService : IUserService
@@ -59,6 +61,25 @@ public class UserService : IUserService
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
+    public void checkAndRemoveOngoingBuildingsIfChangePlanet(string userId, string unitId)
+    {
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
+        var unit = _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId);
+        if (_usersBuildingsDb.ContainsKey(user))
+        {
+            var buildingsToRemove = _usersBuildingsDb[user].Where(b => b.BuilderId == unitId).ToList();
+            foreach (var building in buildingsToRemove)
+            {
+                if (unit.Planet != unit.DestinationPlanet && unit.Planet == building.Planet &&
+                    !building.IsBuilt)
+                {
+                    _usersBuildingsDb[user].Remove(building);
+                }
+            }
+        }
+    }
+
+
     public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
@@ -75,11 +96,11 @@ public class UserService : IUserService
             unit.DestinationPlanet = unitUpdated.DestinationPlanet;
             _usersUnitsDb[user].Add(unit);
 
-
             unit.MoveTask = MoveUnitBackgroundTask(unit, user, clock);
             unit.LastUpdate = clock.Now;
             return unitUpdated;
         }
+
         return null;
     }
 
@@ -87,6 +108,7 @@ public class UserService : IUserService
     {
         await Task.Run(async () =>
         {
+            checkAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id);
             var tmp = _usersUnitsDb[user].First(u => u.Id == unit.Id);
             if ((tmp.System == null) ||
                 (tmp.DestinationSystem != null && !tmp.System.Equals(tmp.DestinationSystem))
@@ -99,7 +121,7 @@ public class UserService : IUserService
                 tmp.LastUpdate = clock.Now;
             }
 
-            if (tmp.Planet==null ||
+            if (tmp.Planet == null ||
                 (tmp.DestinationPlanet != null && !tmp.Planet.Equals(tmp.DestinationPlanet)))
             {
                 tmp.ETA += 15000;
@@ -121,13 +143,13 @@ public class UserService : IUserService
             {
                 if (unit.Planet == null || unit.System == null || unit.Type != "builder")
                 {
-                    return new BadRequestObjectResult("Unit must be on a planet to build");
+                    throw new Exception();
                 }
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
                 building.EstimatedBuildTime = clock.Now.AddMinutes(5);
-                
+
                 building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
                 if (_usersBuildingsDb.ContainsKey(user))
                     _usersBuildingsDb[user].Add(building);
@@ -137,9 +159,10 @@ public class UserService : IUserService
                 return building;
             }
         }
+
         throw new Exception("User not found");
     }
-    
+
     private async Task BuildBuildingBackgroundTask(Building building, User user, IClock clock)
     {
         await Task.Run(async () =>
@@ -153,14 +176,26 @@ public class UserService : IUserService
         });
     }
 
-    public ActionResult<List<Building>> GetBuildingsOfUserById(string userId)
+    public List<Building> GetBuildingsOfUserById(string userId)
     {
-        var user = _usersUnitsDb.Keys.First(u => u.Id == userId) ?? null;
-        if (user != null)
-        {
-            if (_usersBuildingsDb.ContainsKey(user))
-                return _usersBuildingsDb[user];
-        }
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
+        if (_usersBuildingsDb.ContainsKey(user))
+            return _usersBuildingsDb[user];
         throw new Exception("User not found");
+    }
+
+    public Building GetBuildingOfUserById(string userId, string buildingId)
+    {
+        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
+        if (user== null)
+            throw new Exception("User not found");
+        if (_usersBuildingsDb.ContainsKey(user))
+            return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId);
+        throw new Exception("dasdasdasdasd");
+    }
+
+    public bool unitExists(string buildingBuilderId)
+    {
+        return _usersUnitsDb.Values.Any(u => u.Any(u => u.Id == buildingBuilderId));
     }
 }

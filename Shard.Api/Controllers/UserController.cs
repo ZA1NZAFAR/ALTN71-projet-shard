@@ -124,7 +124,13 @@ public class UserController : Controller
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> CreateBuilding(string userId, [FromBody] Building building)
     {
-        if (!building.ResourceCategory.Equals("gaseous") && !building.ResourceCategory.Equals("solid") && !building.ResourceCategory.Equals("liquid"))
+        if (building == null || building.BuilderId == null )
+        {
+            return BadRequest();
+        }
+
+        if (!(building.ResourceCategory ==null) && !building.ResourceCategory.Equals("gaseous") && !building.ResourceCategory.Equals("solid") &&
+            !building.ResourceCategory.Equals("liquid"))
         {
             return BadRequest();
         }
@@ -168,31 +174,16 @@ public class UserController : Controller
     }
 
 
-    [HttpGet("users/{userId}/buildings/{buildingId}")]
-    public async Task<ActionResult<Building>> GetBuilding(string userId, string buildingId)
+    [HttpGet("users/{userId}/Buildings/{buildingId}")]
+    public ActionResult<Building> GetBuilding(string userId, string buildingId)
     {
-        ActionResult<List<Building>> buildings;
         try
         {
-            buildings = _userService.GetBuildingsOfUserById(userId);
+            return _userService.GetBuildingOfUserById(userId, buildingId);
         }
         catch (Exception e)
         {
             return NotFound();
         }
-
-        Console.WriteLine("3");
-
-        var buildingFound = buildings.Value.FirstOrDefault(b => b.Id.Equals(buildingId)) ?? null;
-        if (buildingFound == null)
-        {
-            return NotFound();
-        }
-
-        if (buildingFound.BuildTask != null)
-        {
-            await buildingFound.BuildTask;
-        }
-        return buildingFound;
     }
 }
