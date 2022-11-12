@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -217,6 +217,15 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(50, updatedUser.ResourcesQuantity.Oxygen);
         Assert.Equal(0, updatedUser.ResourcesQuantity.Titanium);
         Assert.Equal(50, updatedUser.ResourcesQuantity.Water);
+    }
+
+    private async Task<User> ChangeUserResources(string userPath, Action<ResourcesQuantity> resourceMutator)
+    {
+        using var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = CreateAdminAuthorizationHeader();
+
+        var user = await GetUser(userPath, client);
+        return await PutResources(client, user, resourceMutator);
     }
 
     private static async Task<User> GetUser(string userPath, HttpClient client)

@@ -181,4 +181,71 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         });
         await response.AssertStatusEquals(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task QueuingScoutIfNotEnoughResourcesReturns400()
+    {
+        using var client = CreateClient();
+
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
+        await ChangeUserResources(originalBuilding.UserPath, resoucesQuantity =>
+        {
+            resoucesQuantity.Carbon = 20;
+            resoucesQuantity.Iron = 0;
+        });
+
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
+        {
+            type = "scout"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task QueuingScoutIfNotEnoughIronDoesNotSpendCarbon()
+    {
+        using var client = CreateClient();
+
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
+        await ChangeUserResources(originalBuilding.UserPath, resoucesQuantity =>
+        {
+            resoucesQuantity.Carbon = 20;
+            resoucesQuantity.Iron = 0;
+        });
+
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
+        {
+            type = "scout"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 20);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 0);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task QueuingScoutIfNotEnoughCarbonDoesNotSpendIron()
+    {
+        using var client = CreateClient();
+
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
+        await ChangeUserResources(originalBuilding.UserPath, resoucesQuantity =>
+        {
+            resoucesQuantity.Carbon = 0;
+            resoucesQuantity.Iron = 10;
+        });
+
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
+        {
+            type = "scout"
+        });
+        await response.AssertStatusEquals(HttpStatusCode.BadRequest);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 0);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 10);
+    }
 }
