@@ -10,9 +10,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingStarportThenFetchingAllBuildingsIncludesStarport()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildStarport(client);
+        var (originalBuilding, _) = await BuildStarport(client);
 
-        var response = await client.GetAsync($"{userPath}/buildings");
+        var response = await client.GetAsync($"{originalBuilding.UserPath}/buildings");
         await response.AssertSuccessStatusCode();
 
         var buildings = (await response.AssertSuccessJsonAsync()).AssertArray();
@@ -26,8 +26,8 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingStarportThenFetchingBuildingByIdReturnsStarport()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildStarport(client);
-        var building = await RefreshBuilding(client, userPath, originalBuilding);
+        var (originalBuilding, _) = await BuildStarport(client);
+        var building = await RefreshBuilding(client, originalBuilding);
 
         Assert.Equal(originalBuilding.ToString(), building.ToString());
     }
@@ -38,10 +38,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingStarportThenWaiting4MinReturnsUnbuiltStarport()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildStarport(client);
+        var (originalBuilding, _) = await BuildStarport(client);
 
         await fakeClock.Advance(TimeSpan.FromMinutes(4));
-        var building = await RefreshBuilding(client, userPath, originalBuilding);
+        var building = await RefreshBuilding(client, originalBuilding);
 
         Assert.False(building.IsBuilt);
         Assert.Equal(fakeClock.Now.AddMinutes(1), building.EstimatedBuildTime);
@@ -53,10 +53,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingStarportThenWaiting5MinReturnsBuiltStarport()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildStarport(client);
+        var (originalBuilding, _) = await BuildStarport(client);
 
         await fakeClock.Advance(TimeSpan.FromMinutes(5));
-        var building = await RefreshBuilding(client, userPath, originalBuilding);
+        var building = await RefreshBuilding(client, originalBuilding);
 
         Assert.True(building.IsBuilt);
         Assert.Null(building.EstimatedBuildTime);
@@ -68,15 +68,15 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutOnBuiltStarportImmediatlyReturnsOne()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildAndWaitStarportAsync(client);
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
         {
             type = "scout"
         });
         await response.AssertSuccessStatusCode();
 
-        var unit = new Unit(await response.AssertSuccessJsonAsync());
+        var unit = new Unit(originalBuilding.UserPath, await response.AssertSuccessJsonAsync());
         Assert.NotNull(unit.Id);
         Assert.Equal("scout", unit.Type);
     }
@@ -87,18 +87,18 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutOnBuiltStarportCost5Carbon5Iron()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildAndWaitStarportAsync(client);
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
 
-        await AssertResourceQuantity(client, userPath, "carbon", 20);
-        await AssertResourceQuantity(client, userPath, "iron", 10);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 20);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 10);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
         {
             type = "scout"
         });
         await response.AssertSuccessStatusCode();
-        await AssertResourceQuantity(client, userPath, "carbon", 15);
-        await AssertResourceQuantity(client, userPath, "iron", 5);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 15);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 5);
     }
 
     [Fact]
@@ -107,18 +107,18 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingBuilderOnBuiltStarportCost5Carbon10Iron()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildAndWaitStarportAsync(client);
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
 
-        await AssertResourceQuantity(client, userPath, "carbon", 20);
-        await AssertResourceQuantity(client, userPath, "iron", 10);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 20);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 10);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
         {
             type = "builder"
         });
         await response.AssertSuccessStatusCode();
-        await AssertResourceQuantity(client, userPath, "carbon", 15);
-        await AssertResourceQuantity(client, userPath, "iron", 0);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "carbon", 15);
+        await AssertResourceQuantity(client, originalBuilding.UserPath, "iron", 0);
     }
 
     [Fact]
@@ -127,9 +127,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutForInvalidUserReturns404()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildAndWaitStarportAsync(client);
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
 
-        var response = await client.PostAsJsonAsync($"{userPath}z/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync($"{originalBuilding.UserPath}z/buildings/{originalBuilding.Id}/queue", new
         {
             type = "scout"
         });
@@ -142,9 +142,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutForInvalidBuildingReturns404()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildAndWaitStarportAsync(client);
+        var originalBuilding = await BuildAndWaitStarportAsync(client);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}z/queue", new
+        var response = await client.PostAsJsonAsync($"{originalBuilding.UserPath}/buildings/{originalBuilding.Id}z/queue", new
         {
             type = "scout"
         });
@@ -157,10 +157,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutOnMineReturns400()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildMine(client);
+        var (originalBuilding, _) = await BuildMine(client);
 
         await fakeClock.Advance(TimeSpan.FromMinutes(5));
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
         {
             type = "scout"
         });
@@ -173,9 +173,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task QueuingScoutOnUnBuiltStarportReturns400()
     {
         using var client = CreateClient();
-        var (userPath, _, originalBuilding) = await BuildStarport(client);
+        var (originalBuilding, _) = await BuildStarport(client);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings/{originalBuilding.Id}/queue", new
+        var response = await client.PostAsJsonAsync(originalBuilding.QueueUrl, new
         {
             type = "scout"
         });
