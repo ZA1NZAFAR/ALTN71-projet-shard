@@ -45,6 +45,56 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         await response.AssertStatusEquals(HttpStatusCode.NotFound);
     }
 
+    public async Task PutNonExistingUnitAsUnauthenticated(string unitType)
+    {
+        using var client = CreateClient();
+        var userPath = await CreateNewUserPath();
+        var unitId = Guid.NewGuid();
+
+        var originSystem = await GetRandomSystem();
+        var originPlanet = await GetSomePlanetInSystem(originSystem);
+
+        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unitId}", new
+        {
+            id = unitId,
+            Type = unitType,
+            System = originSystem,
+            Planet = originPlanet,
+            resourcesQuantity = new { } // Some implementations might require this 
+        });
+
+        await response.AssertStatusEquals(HttpStatusCode.Unauthorized);
+    }
+
+    public async Task PutNonExistingUnitAsAdministrator(string unitType)
+    {
+        using var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = CreateAdminAuthorizationHeader();
+
+        var userPath = await CreateNewUserPath();
+        var unitId = Guid.NewGuid();
+
+        var originSystem = await GetRandomSystem();
+        var originPlanet = await GetSomePlanetInSystem(originSystem);
+
+        using var response = await client.PutAsJsonAsync($"{userPath}/units/{unitId}", new
+        {
+            id = unitId,
+            Type = unitType,
+            System = originSystem,
+            Planet = originPlanet,
+            resourcesQuantity = new { } // Some implementations might require this 
+        });
+        var unit = new Unit(userPath, await response.AssertSuccessJsonAsync());
+
+        Assert.NotNull(unit.Id);
+        Assert.Equal(originSystem, unit.System);
+        Assert.Equal(originPlanet, unit.Planet);
+        Assert.Equal(originSystem, unit.DestinationSystem);
+        Assert.Equal(originPlanet, unit.DestinationPlanet);
+    }
+
+
     public async Task MoveUnitToOtherSystem(string unitType)
     {
         var userPath = await CreateNewUserPath();
@@ -63,7 +113,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(destinationSystem, unitAfterMove.DestinationSystem);
     }
 
-    private async Task<string> GetRandomSystemOtherThan(string systemName)
+    private Task<string> GetRandomSystem() => GetRandomSystemOtherThan(null);
+
+
+    private async Task<string> GetRandomSystemOtherThan(string? systemName)
     {
         using var client = CreateClient();
         using var response = await client.GetAsync("systems");

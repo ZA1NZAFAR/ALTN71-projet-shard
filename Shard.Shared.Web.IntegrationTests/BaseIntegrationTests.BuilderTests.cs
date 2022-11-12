@@ -39,6 +39,18 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
     [Fact]
     [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingBuilderAsUnauthenticated()
+        => PutNonExistingUnitAsUnauthenticated("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingBuilderAsAdministrator()
+        => PutNonExistingUnitAsAdministrator("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
     [Trait("version", "3")]
     public Task MoveBuilderToOtherSystem()
         => MoveUnitToOtherSystem("builder");

@@ -63,6 +63,18 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
     [Fact]
     [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingScoutAsUnauthenticated()
+        => PutNonExistingUnitAsUnauthenticated("scout");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingScoutAsAdministrator()
+        => PutNonExistingUnitAsAdministrator("scout");
+
+    [Fact]
+    [Trait("grading", "true")]
     [Trait("version", "2")]
     public Task MoveScoutToOtherSystem()
         => MoveUnitToOtherSystem("scout");
