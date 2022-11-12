@@ -87,7 +87,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         });
         var unit = new Unit(userPath, await response.AssertSuccessJsonAsync());
 
-        Assert.NotNull(unit.Id);
+        Assert.Equal(unitId.ToString(), unit.Id);
         Assert.Equal(originSystem, unit.System);
         Assert.Equal(originPlanet, unit.Planet);
         Assert.Equal(originSystem, unit.DestinationSystem);

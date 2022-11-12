@@ -36,6 +36,7 @@ public record Unit(string UserPath, JObjectAsserter Json)
         get => Json["destinationPlanet"].AssertString();
         set => Json.SetPropertyValue("destinationPlanet", value);
     }
+    public int Health => Json["health"].AssertInteger();
 
     public override string ToString() => Json.ToString();
 }
