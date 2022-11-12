@@ -229,7 +229,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     {
         resourceMutator(user.ResourcesQuantity);
         
-        using var response = await client.PutAsJsonAsync(user.Url, user);
+        using var response = await client.PutTestEntityAsync(user.Url, user);
         return new (await response.AssertSuccessJsonAsync());
     }
 

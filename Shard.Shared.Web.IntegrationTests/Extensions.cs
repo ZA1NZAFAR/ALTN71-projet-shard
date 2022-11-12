@@ -22,10 +22,9 @@ public static class Extensions
     }
 
     public static Task<HttpResponseMessage> PutTestEntityAsync<T>(this HttpClient client, string uri, T unit)
-        where T : Unit
     {
         return client.PutAsync(uri, new StringContent(
-            unit.Json.ToString(),
+            unit?.ToString() ?? "",
             Encoding.UTF8,
             "application/json"));
     }

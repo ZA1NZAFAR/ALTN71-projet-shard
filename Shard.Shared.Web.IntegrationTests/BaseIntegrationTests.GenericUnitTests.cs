@@ -129,7 +129,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         unit.DestinationSystem = destinationSystem;
         unit.DestinationPlanet = destinationPlanet;
 
-        using var moveResponse = await client.PutAsJsonAsync(unit.Url, unit);
+        using var moveResponse = await client.PutTestEntityAsync(unit.Url, unit);
         await moveResponse.AssertSuccessStatusCode();
 
         await fakeClock.Advance(new TimeSpan(0, 1, 15));
