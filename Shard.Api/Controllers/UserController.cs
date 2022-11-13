@@ -122,6 +122,11 @@ public class UserController : Controller
                 res.ResourcesQuantity[resource]++;
                 planet.ResourceQuantity[resource]--;
                 minutes--;
+
+                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !isExhausted(planet) && building.ResourceCategory == "solid")
+                {
+                    resource = SwissKnife.getHighestResource(planet);
+                }
             }
             Console.WriteLine("Before -------------------");
             foreach (var resorces in _celestialService.GetPlanetOfSystem(building.System, building.Planet).ResourceQuantity)
@@ -132,6 +137,18 @@ public class UserController : Controller
         }
     }
 
+    private bool isExhausted(PlanetSpecificationEditable planet)
+    {
+        foreach (var resource in planet.ResourceQuantity)
+        {
+            if (resource.Value > 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
     [HttpGet("users/{userId}/units")]
     public ActionResult<List<Unit>> GetAllUnits(string userId)
     {
