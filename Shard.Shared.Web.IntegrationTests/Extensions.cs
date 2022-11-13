@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -67,5 +68,11 @@ public static class Extensions
         return response.Content != null
             ? string.Concat("Body:", Environment.NewLine, await response.Content.ReadAsStringAsync())
             : "No body";
+    }
+
+    public static void SetTimeoutIfNotDebug(this HttpClient client, TimeSpan timeout)
+    {
+        if (!Debugger.IsAttached)
+            client.Timeout = timeout;
     }
 }

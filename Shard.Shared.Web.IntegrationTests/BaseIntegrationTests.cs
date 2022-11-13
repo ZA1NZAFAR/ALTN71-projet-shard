@@ -56,7 +56,7 @@ public abstract partial class BaseIntegrationTests<TEntryPoint, TWebApplicationF
             new CookieContainerHandler(),
             new TimeoutHandler());
 
-        client.Timeout = TimeSpan.FromSeconds(3);
+        client.SetTimeoutIfNotDebug(TimeSpan.FromSeconds(3));
 
         return client;
     }

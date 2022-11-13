@@ -81,7 +81,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task CanBuildMineOnPlanet()
     {
         using var client = CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(1);
+        client.SetTimeoutIfNotDebug(TimeSpan.FromSeconds(1));
         var (userPath, builder) = await SendUnitToPlanet(client, "builder");
 
         var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
