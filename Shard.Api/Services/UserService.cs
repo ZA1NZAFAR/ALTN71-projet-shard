@@ -45,7 +45,7 @@ public class UserService : IUserService
 
     public User? GetUser(string userId)
         => _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId) ?? null;
-    
+
     public List<Unit>? GetUnitsOfUserById(string userId)
     {
         var user = _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId);
@@ -57,7 +57,6 @@ public class UserService : IUserService
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
-    
 
 
     public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
@@ -76,41 +75,12 @@ public class UserService : IUserService
             unit.DestinationPlanet = unitUpdated.DestinationPlanet;
             _usersUnitsDb[user].Add(unit);
 
-            unit.MoveTask = MoveUnitBackgroundTask(unit, user, clock);
+            unit.MoveTask = BackGroundTasks.MoveUnitBackgroundTask(unit, user, clock,_usersUnitsDb,_usersBuildingsDb);
             unit.LastUpdate = clock.Now;
             return unitUpdated;
         }
 
         return null;
-    }
-
-    private async Task MoveUnitBackgroundTask(Unit unit, User user, IClock clock)
-    {
-        await Task.Run(async () =>
-        {
-            SwissKnife.CheckAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id,_usersUnitsDb,_usersBuildingsDb);
-            var tmp = _usersUnitsDb[user].First(u => u.Id == unit.Id);
-            if ((tmp.System == null && tmp.DestinationSystem != null) ||
-                (tmp.DestinationSystem != null && !tmp.System.Equals(tmp.DestinationSystem))
-               )
-            {
-                tmp.ETA += 60000;
-                await clock.Delay(60000);
-                tmp.System = tmp.DestinationSystem;
-                tmp.DestinationSystem = null;
-                tmp.LastUpdate = clock.Now;
-            }
-
-            if ((tmp.Planet == null && tmp.DestinationPlanet != null) ||
-                (tmp.DestinationPlanet != null && !tmp.Planet.Equals(tmp.DestinationPlanet)))
-            {
-                tmp.ETA += 15000;
-                await clock.Delay(15000);
-                tmp.Planet = tmp.DestinationPlanet;
-                tmp.DestinationPlanet = null;
-                tmp.LastUpdate = clock.Now;
-            }
-        });
     }
 
     public Building CreateBuilding(string userId, Building building, IClock clock)
@@ -121,13 +91,14 @@ public class UserService : IUserService
             var unit = _usersUnitsDb[user].Find(u => u.Id == building.BuilderId);
             if (unit != null)
             {
+                // only a "builder" situated on a "planet" in a "system" can build a building
                 if (unit.Type != "builder" || unit.Planet == null || unit.System == null)
-                {
                     throw new Exception("Unit is not a builder");
-                }
-
+                
                 building.System = unit.System;
                 building.Planet = unit.Planet;
+                
+                // building id could be null
                 if (building.Id == null)
                 {
                     building.Id = Guid.NewGuid().ToString();
@@ -139,30 +110,15 @@ public class UserService : IUserService
                     _usersBuildingsDb[user].Add(building);
                 else
                     _usersBuildingsDb.Add(user, new List<Building> { building });
-                building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
-
-
+                
+                // start building task
+                building.BuildTask = BackGroundTasks.BuildBuildingBackgroundTask(building, user, clock, _usersBuildingsDb);
+                
                 return building;
             }
         }
 
         throw new Exception("User not found");
-    }
-
-    private async Task BuildBuildingBackgroundTask(Building building, User user, IClock clock)
-    {
-        await Task.Run(async () =>
-        {
-            var tmp = _usersBuildingsDb[user].First(u => u.Id == building.Id);
-            if (tmp != null)
-            {
-                await clock.Delay(TimeSpan.FromMinutes(5));
-                building.IsBuilt = true;
-                building.EstimatedBuildTime = null;
-                building.BuildTask = null;
-                building.LastUpdate = clock.Now;
-            }
-        });
     }
 
     public List<Building> GetBuildingsOfUserById(string userId)
