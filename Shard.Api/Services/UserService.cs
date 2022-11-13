@@ -134,7 +134,6 @@ public class UserService : IUserService
             if ((tmp.Planet == null && tmp.DestinationPlanet != null) ||
                 (tmp.DestinationPlanet != null && !tmp.Planet.Equals(tmp.DestinationPlanet)))
             {
-                checkAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id);
                 tmp.ETA += 15000;
                 await clock.Delay(15000);
                 tmp.Planet = tmp.DestinationPlanet;
