@@ -2,7 +2,6 @@
 
 public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 {
-
     [Fact]
     [Trait("grading", "true")]
     [Trait("version", "1")]
@@ -145,5 +144,35 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
         var array = await response.AssertSuccessJsonAsync();
         array[0]["planets"][0]["size"].AssertInteger();
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "4")]
+    public async Task SystemIsFollowingTestSpecifications()
+    {
+        var expectedJson = GetExpectedJson("expectedTestSector.json")?.Replace("\r", string.Empty);
+
+        using var client = CreateClient();
+        using var response = await client.GetAsync("systems");
+
+        var array = await response.AssertSuccessJsonAsync();
+        Assert.Equal(expectedJson, array.ToIndentedString()?.Replace("\r", string.Empty));
+    } 
+
+    private static string? GetExpectedJson(string fileName)
+    {
+        // We assume test files are under the current assembly 
+        // AND the same namespace (or a child one)
+        var sibblingType = typeof(BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>);
+        var owningAssembly = sibblingType.Assembly;
+        var baseNameSpace = sibblingType.Namespace;
+
+        using var stream = owningAssembly.GetManifestResourceStream(baseNameSpace + "." + fileName);
+        if (stream == null)
+            return null;
+
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

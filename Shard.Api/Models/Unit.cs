@@ -29,14 +29,4 @@ public class Unit
         this.System = system;
         this.Planet = planet;
     }
-
-    public void changeSystemSpecification(SystemSpecification systemSpecification)
-    {
-        SystemSpecification = systemSpecification;
-    }
-
-    public string toString()
-    {
-        return "Vaisseau " + Id + " de type " + Type + " dans le système " + System + " sur la planète " + Planet;
-    }
 }

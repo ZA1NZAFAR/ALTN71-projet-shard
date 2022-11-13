@@ -1,60 +1,43 @@
+using Shard.Api.Models.EditableObjects;
+using Shard.Api.Tools;
 using Shard.Shared.Core;
 
 namespace Shard.Api.Services;
 
 public interface ICelestialService
 {
-    public IReadOnlyList<SystemSpecification> GetAllSystemsAndPlanets();
-    SystemSpecification GetSystemAndPlanets(string systemName);
-    IReadOnlyList<PlanetSpecification> GetPlanetsOfSystem(string systemName);
-    PlanetSpecification GetPlanetOfSystem(string systemName, string planetName);
-    SystemSpecification GetRandomSystem();
+    public List<SystemSpecificationEditable> GetAllSystemsAndPlanets();
+    SystemSpecificationEditable GetSystemAndPlanets(string systemName);
+    List<PlanetSpecificationEditable> GetPlanetsOfSystem(string systemName);
+    PlanetSpecificationEditable GetPlanetOfSystem(string systemName, string planetName);
+    SystemSpecificationEditable GetRandomSystem();
 }
 
+// Service that stores the celestial objects and returns them when requested
 public class CelestialService : ICelestialService
 {
-    private MapGenerator _mapGenerator;
-    private SectorSpecification _universe;
+    private readonly SectorSpecificationEditable _universe;
 
     public CelestialService()
     {
         MapGeneratorOptions mapGeneratorOptions = new MapGeneratorOptions();
-        mapGeneratorOptions.Seed = "TheUltimateSeed";
-        _mapGenerator = new MapGenerator(mapGeneratorOptions);
-        _universe = _mapGenerator.Generate();
+        mapGeneratorOptions.Seed = "Test application";
+        var mapGenerator = new MapGenerator(mapGeneratorOptions);
+        _universe = SwissKnife.SectorToEditableSector(mapGenerator.Generate());
     }
 
-    public IReadOnlyList<SystemSpecification> GetAllSystemsAndPlanets()
-    {
-        var sys = _universe.Systems;
-        return sys;
-    }
-
-    public SystemSpecification GetSystemAndPlanets(string systemName)
-    {
-        var sys = _universe.Systems;
-        return sys.FirstOrDefault(x => x.Name == systemName);
-    }
-
-    public IReadOnlyList<PlanetSpecification> GetPlanetsOfSystem(string systemName)
-    {
-        var sys = _universe.Systems;
-        var system = sys.FirstOrDefault(x => x.Name == systemName);
-        return system.Planets;
-    }
-
-    public PlanetSpecification GetPlanetOfSystem(string systemName, string planetName)
-    {
-        var sys = _universe.Systems;
-        var system = sys.FirstOrDefault(x => x.Name == systemName);
-        var planet = system.Planets.FirstOrDefault(x => x.Name == planetName);
-        return planet;
-    }
-
-    public SystemSpecification GetRandomSystem()
-    {
-        var sys = _universe.Systems;
-        var system = sys.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
-        return system;
-    }
+    public List<SystemSpecificationEditable> GetAllSystemsAndPlanets() => _universe.Systems;
+    
+    public SystemSpecificationEditable GetSystemAndPlanets(string systemName)
+        => _universe.Systems.FirstOrDefault(x => x.Name == systemName) ?? throw new InvalidOperationException();
+    
+    public List<PlanetSpecificationEditable> GetPlanetsOfSystem(string systemName)
+        => _universe.Systems.FirstOrDefault(x => x.Name == systemName)!.Planets;
+    
+    public PlanetSpecificationEditable GetPlanetOfSystem(string systemName, string planetName)
+        => GetPlanetsOfSystem(systemName).FirstOrDefault(x => x.Name == planetName) ??
+           throw new InvalidOperationException();
+    
+    public SystemSpecificationEditable GetRandomSystem()
+    => _universe.Systems.MinBy(x => Guid.NewGuid())!;
 }
