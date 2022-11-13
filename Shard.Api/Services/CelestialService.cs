@@ -21,7 +21,7 @@ public class CelestialService : ICelestialService
         MapGeneratorOptions mapGeneratorOptions = new MapGeneratorOptions();
         mapGeneratorOptions.Seed = "Test application";
         var mapGenerator = new MapGenerator(mapGeneratorOptions);
-        _universe = SwissKnife.sectorToEditableSector(mapGenerator.Generate());
+        _universe = SwissKnife.SectorToEditableSector(mapGenerator.Generate());
     }
 
     public IReadOnlyList<SystemSpecificationEditable> GetAllSystemsAndPlanets()

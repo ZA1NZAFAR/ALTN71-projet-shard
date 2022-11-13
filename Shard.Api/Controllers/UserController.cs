@@ -30,17 +30,11 @@ public class UserController : Controller
     [ProducesResponseType(typeof(User), (int)HttpStatusCode.NotFound)]
     public ActionResult<User> CreateUser(string userId, [FromBody] User user)
     {
-        if (user == null
-            ||
-            userId == null
-            ||
-            userId != user.Id
-            ||
+        if (user == null || userId == null || userId != user.Id ||
             userId.Length == 1 && Regex.IsMatch(userId, @"[!@#$'%^&*()_+=\[{\]};:<>|./?,-]")
            )
-        {
             return BadRequest();
-        }
+
 
         user.ResourcesQuantity = new Dictionary<ResourceKind, int>()
         {
@@ -72,7 +66,7 @@ public class UserController : Controller
         {
             return new NotFoundResult();
         }
-        
+
         updateResources(res);
         return res;
     }
@@ -95,6 +89,7 @@ public class UserController : Controller
             {
                 continue;
             }
+
             var minutes = (int)(_clock.Now - building.creationTime).TotalMinutes;
             var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
             ResourceKind resource;
@@ -109,7 +104,7 @@ public class UserController : Controller
             }
             else
             {
-                resource = SwissKnife.getHighestResource(planet);
+                resource = SwissKnife.GetHighestResource(planet);
             }
 
             Console.WriteLine("Before -------------------");
@@ -117,23 +112,28 @@ public class UserController : Controller
             {
                 Console.WriteLine(resorces.Key + " " + resorces.Value);
             }
+
             while (minutes > 0 && planet.ResourceQuantity[resource] > 0)
             {
                 res.ResourcesQuantity[resource]++;
                 planet.ResourceQuantity[resource]--;
                 minutes--;
 
-                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !isExhausted(planet) && building.ResourceCategory == "solid")
+                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !isExhausted(planet) &&
+                    building.ResourceCategory == "solid")
                 {
-                    resource = SwissKnife.getHighestResource(planet);
+                    resource = SwissKnife.GetHighestResource(planet);
                 }
             }
+
             Console.WriteLine("Before -------------------");
-            foreach (var resorces in _celestialService.GetPlanetOfSystem(building.System, building.Planet).ResourceQuantity)
+            foreach (var resorces in _celestialService.GetPlanetOfSystem(building.System, building.Planet)
+                         .ResourceQuantity)
             {
                 Console.WriteLine(resorces.Key + " " + resorces.Value);
             }
-            building.creationTime = _clock.Now;    
+
+            building.creationTime = _clock.Now;
         }
     }
 
@@ -149,6 +149,7 @@ public class UserController : Controller
 
         return true;
     }
+
     [HttpGet("users/{userId}/units")]
     public ActionResult<List<Unit>> GetAllUnits(string userId)
     {

@@ -1,24 +1,11 @@
-using System.Collections.ObjectModel;
 using Shard.Shared.Core;
 
 namespace Shard.Api.Tools;
 
-public class SwissKnife
+public static class SwissKnife
 {
-    public static ResourceKind getResourceKindFromString(string resource)
-    {
-        foreach (ResourceKind resourceKind in Enum.GetValues(typeof(ResourceKind)))
-        {
-            if (resourceKind.ToString().ToLower() == resource.ToLower())
-            {
-                return resourceKind;
-            }
-        }
-
-        throw new Exception("Resource not found");
-    }
-
-    public static ResourceKind getHighestResource(PlanetSpecificationEditable planet)
+    // Get the highest quantity solid resource
+    public static ResourceKind GetHighestResource(PlanetSpecificationEditable planet)
     {
         var resources = planet.ResourceQuantity;
         var highestResource = resources.First().Key;
@@ -34,14 +21,15 @@ public class SwissKnife
             }
             else if (resources[resource.Key] == highestQuantity)
             {
-                highestResource = getMoreImportantRessorce(highestResource, resource.Key);
+                highestResource = GetMoreImportantResource(highestResource, resource.Key);
             }
         }
 
         return highestResource;
     }
 
-    private static ResourceKind getMoreImportantRessorce(ResourceKind resorce1, ResourceKind resource2)
+    // Get the more important resource between two resources
+    private static ResourceKind GetMoreImportantResource(ResourceKind resource1, ResourceKind resource2)
     {
         var priority = new List<ResourceKind>
         {
@@ -52,31 +40,29 @@ public class SwissKnife
             ResourceKind.Carbon
         };
 
-        var resorce1Index = priority.IndexOf(resorce1);
+        var resource1Index = priority.IndexOf(resource1);
         var resource2Index = priority.IndexOf(resource2);
-        if (resorce1Index < resource2Index)
-        {
-            return resorce1;
-        }
-
-        return resource2;
+        return resource1Index < resource2Index ? resource1 : resource2;
     }
 
-    public static SectorSpecificationEditable sectorToEditableSector(SectorSpecification sector)
+    // To convert a generated Sector to an editable one
+    public static SectorSpecificationEditable SectorToEditableSector(SectorSpecification sector)
     {
         List<SystemSpecificationEditable> systems =
-            sector.Systems.Select(system => systemToEditableSystem(system)).ToList();
+            sector.Systems.Select(SystemToEditableSystem).ToList();
         return new SectorSpecificationEditable(systems);
     }
 
-    private static SystemSpecificationEditable systemToEditableSystem(SystemSpecification system)
+    // To convert a generated System to an editable one
+    private static SystemSpecificationEditable SystemToEditableSystem(SystemSpecification system)
     {
         List<PlanetSpecificationEditable> planets =
-            system.Planets.Select(planet => planetToEditablePlanet(planet)).ToList();
+            system.Planets.Select(PlanetToEditablePlanet).ToList();
         return new SystemSpecificationEditable(system.Name, planets);
     }
 
-    private static PlanetSpecificationEditable planetToEditablePlanet(PlanetSpecification planet)
+    // To convert a generated Planet to an editable one
+    private static PlanetSpecificationEditable PlanetToEditablePlanet(PlanetSpecification planet)
     {
         return new PlanetSpecificationEditable(planet.Name, planet.Size,
             planet.ResourceQuantity.ToDictionary(x => x.Key, x => x.Value));
