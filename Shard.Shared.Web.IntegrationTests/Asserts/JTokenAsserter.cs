@@ -33,6 +33,12 @@ public class JTokenAsserter: BaseJTokenAsserter
         return Token.Value<string>();
     }
 
+    public DateTime AssertDateTime()
+    {
+        Assert.Equal(JTokenType.Date, Token.Type);
+        return Token.Value<DateTime>();
+    }
+
     public DateTime? AssertNullableDateTime()
     {
         Assert.Contains(Token.Type, new[] { JTokenType.Date, JTokenType.Null });
@@ -58,5 +64,11 @@ public class JTokenAsserter: BaseJTokenAsserter
     {
         Assert.Equal(JTokenType.Integer, Token.Type);
         return Token.Value<int>();
+    }
+
+    public int? AssertNullableInteger()
+    {
+        Assert.Contains(Token.Type, new[] { JTokenType.Integer, JTokenType.Null });
+        return Token.Value<int?>();
     }
 }

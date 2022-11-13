@@ -1,19 +1,20 @@
 ﻿namespace Shard.Shared.Web.IntegrationTests.TestEntities;
 
-public record Unit(JObjectAsserter Json)
+public record Unit(string UserPath, JObjectAsserter Json)
 { 
-    public Unit(JTokenAsserter json)
-        : this(json.AssertObject())
+    public Unit(string UserPath, JTokenAsserter json)
+        : this(UserPath, json.AssertObject())
     {
     }
 
-    public Unit(JToken json)
-        : this(new JTokenAsserter(json))
+    public Unit(string UserPath, JToken json)
+        : this(UserPath, new JTokenAsserter(json))
     {
     }
 
     public string Id => Json["id"].AssertNonEmptyString();
-    public string BaseUrl => $"users/{Id}";
+    public string Url => $"{UserPath}/units/{Id}";
+    public string BuildUrl => $"{UserPath}/buildings";
     public string Type => Json["type"].AssertNonEmptyString();
     public string System
     {
@@ -35,6 +36,7 @@ public record Unit(JObjectAsserter Json)
         get => Json["destinationPlanet"].AssertString();
         set => Json.SetPropertyValue("destinationPlanet", value);
     }
+    public int Health => Json["health"].AssertInteger();
 
     public override string ToString() => Json.ToString();
 }

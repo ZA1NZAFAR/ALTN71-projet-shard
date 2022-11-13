@@ -39,6 +39,18 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
     [Fact]
     [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingBuilderAsUnauthenticated()
+        => PutNonExistingUnitAsUnauthenticated("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public Task PutNonExistingBuilderAsAdministrator()
+        => PutNonExistingUnitAsAdministrator("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
     [Trait("version", "3")]
     public Task MoveBuilderToOtherSystem()
         => MoveUnitToOtherSystem("builder");
@@ -61,12 +73,12 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
 
         unit.DestinationPlanet = destinationPlanet;
         using var client = CreateClient();
-        using var moveResponse = await client.PutTestEntityAsync($"{userPath}/units/{unit.Id}", unit);
+        using var moveResponse = await client.PutTestEntityAsync($"{unit.Url}", unit);
         await moveResponse.AssertSuccessStatusCode();
 
         await fakeClock.Advance(new TimeSpan(0, 0, 15));
 
-        using var scoutingResponse = await client.GetAsync($"{userPath}/units/{unit.Id}/location");
+        using var scoutingResponse = await client.GetAsync($"{unit.Url}/location");
         await scoutingResponse.AssertSuccessStatusCode();
 
         var location = (await scoutingResponse.AssertSuccessJsonAsync()).AssertObject();
@@ -81,10 +93,10 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task CanBuildMineOnPlanet()
     {
         using var client = CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(1);
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        client.SetTimeoutIfNotDebug(TimeSpan.FromSeconds(1));
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -101,9 +113,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingMineReturnsMineWithLocation()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -125,9 +137,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingMineOfGivenResourceKindReturnsMineWithGivenResourceKind(string resourceCategory)
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -145,9 +157,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingMineOfInvalidResourceKindReturns400()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -162,9 +174,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingWithNoBodySends400()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync<object?>($"{userPath}/buildings", null);
+        var response = await client.PostAsJsonAsync<object?>(builder.BuildUrl, null);
         await response.AssertStatusEquals(HttpStatusCode.BadRequest);
     }
 
@@ -174,16 +186,16 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingMineReturnsUnbuiltMineWithExpectedBuildTime()
     {
         using var client = CreateClient();
-        var (_, _, building) = await BuildMine(client);
+        var (building, _) = await BuildMine(client);
         Assert.False(building.IsBuilt);
         Assert.Equal(fakeClock.Now.AddMinutes(5), building.EstimatedBuildTime);
     }
 
-    private async Task<(string, Unit, Building)> BuildMine(HttpClient client)
+    private async Task<(Building, Unit)> BuildMine(HttpClient client)
     {
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -191,15 +203,37 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         });
         await response.AssertSuccessStatusCode();
 
-        return (userPath, builder, new Building(await response.AssertSuccessJsonAsync()));
+        return (new Building(builder.UserPath, await response.AssertSuccessJsonAsync()), builder);
     }
 
-    private async Task<(string, Unit, Building)> BuildMineOn(HttpClient client, string system, string planet,
+    private async Task<(Building, Unit)> BuildStarport(HttpClient client)
+    {
+        var builder = await SendUnitToPlanet(client, "builder");
+
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
+        {
+            builderId = builder.Id,
+            type = "starport"
+        });
+        await response.AssertSuccessStatusCode();
+
+        return (new Building(builder.UserPath, await response.AssertSuccessJsonAsync()), builder);
+    }
+
+    private async Task<Building> BuildAndWaitStarportAsync(HttpClient client)
+    {
+        var (building, _) = await BuildStarport(client);
+        await fakeClock.Advance(TimeSpan.FromMinutes(5));
+        return building;
+    }
+
+
+    private async Task<Building> BuildMineOn(HttpClient client, string system, string planet,
         string resourceCategory = "solid")
     {
-        var (userPath, builder) = await SendUnitToSpecificPlanet(client, "builder", system, planet);
+        var builder = await SendUnitToSpecificPlanet(client, "builder", system, planet);
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "mine",
@@ -207,7 +241,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         });
         await response.AssertSuccessStatusCode();
 
-        return (userPath, builder, new Building(await response.AssertSuccessJsonAsync()));
+        return new Building(builder.UserPath, await response.AssertSuccessJsonAsync());
     }
 
     [Fact]
@@ -216,9 +250,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingWithIncorrectUserIdSends404()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}x/buildings", new
+        var response = await client.PostAsJsonAsync($"{builder.UserPath}x/buildings", new
         {
             builderId = builder.Id,
             type = "mine",
@@ -233,9 +267,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingWithNoBuilderIdSends400()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             type = "mine"
         });
@@ -248,9 +282,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingWithIncorrectBuilderIdSends400()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id + "x",
             type = "mine"
@@ -264,9 +298,9 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     public async Task BuildingWithIncorrectBuildingTypeSends400()
     {
         using var client = CreateClient();
-        var (userPath, builder) = await SendUnitToPlanet(client, "builder");
+        var builder = await SendUnitToPlanet(client, "builder");
 
-        var response = await client.PostAsJsonAsync($"{userPath}/buildings", new
+        var response = await client.PostAsJsonAsync(builder.BuildUrl, new
         {
             builderId = builder.Id,
             type = "enim"
@@ -309,4 +343,29 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
     [Trait("version", "3")]
     public Task GetBuilder_IfLessOrEqualThan2secAway_WaitsUntilArrived()
         => GetUnit_IfLessOrEqualThan2secAway_WaitsUntilArrived("builder");
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task CanBuildStarportOnPlanet()
+    {
+        using var client = CreateClient();
+        var (building, builder) = await BuildStarport(client);
+
+        Assert.NotNull(building.Id);
+        Assert.Equal("starport", building.Type);
+        Assert.Equal(builder.System, building.System);
+        Assert.Equal(builder.Planet, building.Planet);
+    }
+
+    [Fact]
+    [Trait("grading", "true")]
+    [Trait("version", "5")]
+    public async Task StarportDoesNotContainResourceCategory()
+    {
+        using var client = CreateClient();
+        var (building, builder) = await BuildStarport(client);
+
+        building.Json.AssertNullOrMissingProperty("resourcesQuantity");
+    }
 }
