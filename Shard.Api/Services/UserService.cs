@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
+using Shard.Api.Tools;
 using Shard.Shared.Core;
 
 namespace Shard.Api.Services;
 
 public interface IUserService
 {
+    public void SetCelestialService(ICelestialService celestialService);
     public void AddUser(User user);
     public void AddUnitUser(Unit unit, User user);
     User GetUser(string userId);
@@ -22,6 +25,12 @@ public class UserService : IUserService
 {
     private readonly Dictionary<User, List<Unit>> _usersUnitsDb;
     private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
+    private ICelestialService _celestialService;
+
+    public void SetCelestialService(ICelestialService celestialService)
+    {
+        _celestialService = celestialService;
+    }
 
     public UserService()
     {
@@ -148,7 +157,10 @@ public class UserService : IUserService
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
-                building.Id = Guid.NewGuid().ToString();
+                if (building.Id  == null)
+                {
+                    building.Id = Guid.NewGuid().ToString();
+                }
                 building.EstimatedBuildTime = clock.Now.AddMinutes(5);
 
                 building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
@@ -174,9 +186,38 @@ public class UserService : IUserService
                 await clock.Delay(TimeSpan.FromMinutes(5));
                 building.IsBuilt = true;
                 building.EstimatedBuildTime = null;
+                building.BuildTask = null;
+                building.creationTime = clock.Now;
+                // building.MiningTask = MineBuildingBackgroundTask(building, user, clock);
             }
         });
     }
+
+    // private async Task MineBuildingBackgroundTask(Building building, User user, IClock clock)
+    // {
+    //     await Task.Run(async () =>
+    //     {
+    //         var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
+    //         var resourceKind = SwissKnife.getResourceKindFromString(building.ResourceCategory);
+    //         while (true)
+    //         {
+    //             if (clock.Now - building.lastExtraction >= TimeSpan.FromMinutes(1))
+    //             {
+    //                 if (planet.ResourceQuantity.ContainsKey(resourceKind))
+    //                 {
+    //                     if (planet.ResourceQuantity[resourceKind] > 0)
+    //                     {
+    //                         user.ResourcesQuantity[resourceKind] += 1;
+    //                     }
+    //                 }
+    //
+    //                 building.lastExtraction = clock.Now;
+    //             }
+    //             
+    //             await clock.Delay(TimeSpan.FromMinutes(1));
+    //         }
+    //     });
+    // }
 
     public List<Building> GetBuildingsOfUserById(string userId)
     {
@@ -189,7 +230,7 @@ public class UserService : IUserService
     public Building GetBuildingOfUserById(string userId, string buildingId)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
-        if (user== null)
+        if (user == null)
             throw new Exception("User not found");
         if (_usersBuildingsDb.ContainsKey(user))
             return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId);

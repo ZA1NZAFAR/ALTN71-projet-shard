@@ -4,6 +4,7 @@ using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Services;
+using Shard.Api.Tools;
 using Shard.Shared.Core;
 
 namespace Shard.Api.Controllers;
@@ -20,6 +21,8 @@ public class UserController : Controller
         _celestialService = celestialService;
         _userService = userService;
         _clock = clock;
+
+        _userService.SetCelestialService(celestialService);
     }
 
     [HttpPut("users/{userId}")]
@@ -48,7 +51,6 @@ public class UserController : Controller
             { ResourceKind.Aluminium, 0 },
             { ResourceKind.Gold, 0 },
             { ResourceKind.Titanium, 0 }
-
         };
 
         _userService.AddUser(user);
@@ -71,7 +73,38 @@ public class UserController : Controller
             return new NotFoundResult();
         }
 
+//        updateResources(res);
         return res;
+    }
+
+    private void updateResources(User res)
+    {
+        var buildings = _userService.GetBuildingsOfUserById(res.Id);
+        foreach (var building in buildings)
+        {
+            if (!building.IsBuilt)
+            {
+                continue;
+            }
+            var minutes = (int)(_clock.Now - building.creationTime).TotalMinutes;
+            var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
+            ResourceKind resource;
+
+            if (building.ResourceCategory == "gaseous")
+            {
+                resource = ResourceKind.Oxygen;
+            }
+            else if (building.ResourceCategory == "liquid")
+            {
+                resource = ResourceKind.Water;
+            }
+            else
+            {
+                resource = SwissKnife.getHighestResource(planet);
+            }
+
+            res.ResourcesQuantity[resource] += minutes;
+        }
     }
 
     [HttpGet("users/{userId}/units")]
@@ -127,12 +160,13 @@ public class UserController : Controller
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> CreateBuilding(string userId, [FromBody] Building building)
     {
-        if (building == null || building.BuilderId == null )
+        if (building == null || building.BuilderId == null)
         {
             return BadRequest();
         }
 
-        if (!(building.ResourceCategory ==null) && !building.ResourceCategory.Equals("gaseous") && !building.ResourceCategory.Equals("solid") &&
+        if (!(building.ResourceCategory == null) && !building.ResourceCategory.Equals("gaseous") &&
+            !building.ResourceCategory.Equals("solid") &&
             !building.ResourceCategory.Equals("liquid"))
         {
             return BadRequest();
@@ -182,7 +216,7 @@ public class UserController : Controller
     {
         try
         {
-            var building =  _userService.GetBuildingOfUserById(userId, buildingId);
+            var building = _userService.GetBuildingOfUserById(userId, buildingId);
             if (building == null)
                 throw new Exception("No building found");
 

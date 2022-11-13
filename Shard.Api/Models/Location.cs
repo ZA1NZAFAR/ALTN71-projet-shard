@@ -8,7 +8,7 @@ public class Location
     public string planet { get; set; }
     public Dictionary<string, int> resourcesQuantity { get; set; }
 
-    public Location(string syste, PlanetSpecification planetName)
+    public Location(string syste, PlanetSpecificationEditable planetName)
     {
         system = syste;
         planet = planetName.Name;

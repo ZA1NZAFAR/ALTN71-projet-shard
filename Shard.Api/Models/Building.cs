@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Shard.Api.Models;
 
 public class Building
@@ -11,4 +13,10 @@ public class Building
     public bool IsBuilt { get; set; }
     public DateTime? EstimatedBuildTime { get; set; }
     public Task BuildTask { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public Task MiningTask { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public DateTime creationTime { get; set; }
 }

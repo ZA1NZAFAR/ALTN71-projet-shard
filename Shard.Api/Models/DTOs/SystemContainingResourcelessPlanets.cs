@@ -7,7 +7,7 @@ public class SystemContainingResourcelessPlanets
     public string Name { get; }
     public List<ResourcelessPlanet> Planets { get; }
     
-    public SystemContainingResourcelessPlanets(SystemSpecification systemSpecification)
+    public SystemContainingResourcelessPlanets(SystemSpecificationEditable systemSpecification)
     {
         Name = systemSpecification.Name;
         Planets = systemSpecification.Planets.Select(p => new ResourcelessPlanet(p)).ToList();

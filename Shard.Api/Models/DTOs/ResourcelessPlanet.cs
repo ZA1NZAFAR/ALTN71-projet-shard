@@ -8,7 +8,7 @@ public class ResourcelessPlanet
     public int Size { get; }
     
     
-    public ResourcelessPlanet(PlanetSpecification planetSpecification)
+    public ResourcelessPlanet(PlanetSpecificationEditable planetSpecification)
     {
         Name = planetSpecification.Name;
         Size = planetSpecification.Size;
