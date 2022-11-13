@@ -58,7 +58,6 @@ public class UserService : IUserService
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
-
     public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
@@ -66,21 +65,17 @@ public class UserService : IUserService
         {
             var unit = _usersUnitsDb[user].First(u => u.Id == unitId);
             if (unit == null)
-            {
-                return null;
-            }
+                throw new Exception("Unit not found");
 
-            _usersUnitsDb[user].Remove(unit);
             unit.DestinationSystem = unitUpdated.DestinationSystem;
             unit.DestinationPlanet = unitUpdated.DestinationPlanet;
-            _usersUnitsDb[user].Add(unit);
 
-            unit.MoveTask = BackGroundTasks.MoveUnitBackgroundTask(unit, user, clock,_usersUnitsDb,_usersBuildingsDb);
-            unit.LastUpdate = clock.Now;
+            // start the travel in the background
+            unit.MoveTask = BackGroundTasks.MoveUnitBackgroundTask(unit, user, clock, _usersUnitsDb, _usersBuildingsDb);
             return unitUpdated;
         }
 
-        return null;
+        throw new Exception("User not found");
     }
 
     public Building CreateBuilding(string userId, Building building, IClock clock)
@@ -94,10 +89,10 @@ public class UserService : IUserService
                 // only a "builder" situated on a "planet" in a "system" can build a building
                 if (unit.Type != "builder" || unit.Planet == null || unit.System == null)
                     throw new Exception("Unit is not a builder");
-                
+
                 building.System = unit.System;
                 building.Planet = unit.Planet;
-                
+
                 // building id could be null
                 if (building.Id == null)
                 {
@@ -110,10 +105,11 @@ public class UserService : IUserService
                     _usersBuildingsDb[user].Add(building);
                 else
                     _usersBuildingsDb.Add(user, new List<Building> { building });
-                
+
                 // start building task
-                building.BuildTask = BackGroundTasks.BuildBuildingBackgroundTask(building, user, clock, _usersBuildingsDb);
-                
+                building.BuildTask =
+                    BackGroundTasks.BuildBuildingBackgroundTask(building, user, clock, _usersBuildingsDb);
+
                 return building;
             }
         }
@@ -135,7 +131,8 @@ public class UserService : IUserService
         if (user == null)
             throw new Exception("User not found");
         if (_usersBuildingsDb.ContainsKey(user))
-            return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId);
-        throw new Exception();
+            return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId) ??
+                   throw new InvalidOperationException();
+        throw new Exception("No buildings found");
     }
 }

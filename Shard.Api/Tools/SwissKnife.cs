@@ -5,6 +5,7 @@ using Shard.Shared.Core;
 
 namespace Shard.Api.Tools;
 
+// Contains various helper methods for working with the Shard API.
 public static class SwissKnife
 {
     // Get the highest quantity solid resource
