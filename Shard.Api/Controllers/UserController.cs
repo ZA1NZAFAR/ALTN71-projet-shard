@@ -190,6 +190,7 @@ public class UserController : Controller
                         {
                             return NotFound();
                         }
+                        Thread.Sleep(50);
                     }
                 }
             }
