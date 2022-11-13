@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Mvc;
-using Shard.Api.Models;
+﻿using Shard.Api.Models;
 using Shard.Api.Tools;
 using Shard.Shared.Core;
 
@@ -8,12 +6,11 @@ namespace Shard.Api.Services;
 
 public interface IUserService
 {
-    public void SetCelestialService(ICelestialService celestialService);
     public void AddUser(User user);
     public void AddUnitUser(Unit unit, User user);
-    User GetUser(string userId);
-    List<Unit> GetUnitsOfUserById(string userId);
-    Unit GetUnitOfUserById(string userId, string unitId);
+    User? GetUser(string userId);
+    List<Unit>? GetUnitsOfUserById(string userId);
+    Unit? GetUnitOfUserById(string userId, string unitId);
     Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock);
     Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
@@ -22,14 +19,11 @@ public interface IUserService
 
 public class UserService : IUserService
 {
+    // Units storage
     private readonly Dictionary<User, List<Unit>> _usersUnitsDb;
-    private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
-    private ICelestialService _celestialService;
 
-    public void SetCelestialService(ICelestialService celestialService)
-    {
-        _celestialService = celestialService;
-    }
+    // Buildings storage
+    private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
 
     public UserService()
     {
@@ -40,53 +34,30 @@ public class UserService : IUserService
     public void AddUser(User user)
     {
         if (!_usersUnitsDb.ContainsKey(user))
-        {
             _usersUnitsDb.Add(user, new List<Unit>());
-        }
     }
 
     public void AddUnitUser(Unit unit, User user)
     {
         if (_usersUnitsDb.ContainsKey(user))
-        {
             _usersUnitsDb[user].Add(unit);
-        }
     }
 
-    public User GetUser(string userId)
+    public User? GetUser(string userId)
         => _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId) ?? null;
-
-
-    public List<Unit> GetUnitsOfUserById(string userId)
+    
+    public List<Unit>? GetUnitsOfUserById(string userId)
     {
         var user = _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId);
         return user != null ? _usersUnitsDb[user] : null;
     }
 
-    public Unit GetUnitOfUserById(string userId, string unitId)
+    public Unit? GetUnitOfUserById(string userId, string unitId)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
-
-    public void checkAndRemoveOngoingBuildingsIfChangePlanet(string userId, string unitId)
-    {
-        var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
-        var unit = _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId);
-        if (_usersBuildingsDb.ContainsKey(user))
-        {
-            var buildingsToRemove = _usersBuildingsDb[user].Where(b => b.BuilderId == unitId).ToList();
-            foreach (var building in buildingsToRemove)
-            {
-                if ((unit.Planet != unit.DestinationPlanet && unit.Planet == building.Planet &&
-                     !building.IsBuilt) || (unit.System != unit.DestinationSystem && unit.System == building.System &&
-                                            !building.IsBuilt))
-                {
-                    _usersBuildingsDb[user].Remove(building);
-                }
-            }
-        }
-    }
+    
 
 
     public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
@@ -117,7 +88,7 @@ public class UserService : IUserService
     {
         await Task.Run(async () =>
         {
-            checkAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id);
+            SwissKnife.CheckAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id,_usersUnitsDb,_usersBuildingsDb);
             var tmp = _usersUnitsDb[user].First(u => u.Id == unit.Id);
             if ((tmp.System == null && tmp.DestinationSystem != null) ||
                 (tmp.DestinationSystem != null && !tmp.System.Equals(tmp.DestinationSystem))
@@ -193,7 +164,7 @@ public class UserService : IUserService
             }
         });
     }
-    
+
     public List<Building> GetBuildingsOfUserById(string userId)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);

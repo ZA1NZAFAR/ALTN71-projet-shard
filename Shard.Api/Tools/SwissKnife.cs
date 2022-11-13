@@ -70,10 +70,11 @@ public static class SwissKnife
         return new PlanetSpecificationEditable(planet.Name, planet.Size,
             planet.ResourceQuantity.ToDictionary(x => x.Key, x => x.Value));
     }
-    
-    
+
+
     // Updates the resources of the user according to the time passed and the machines created
-    public static void UpdateResources(User res, IUserService _userService,ICelestialService _celestialService, IClock _clock)
+    public static void UpdateResources(User res, IUserService _userService, ICelestialService _celestialService,
+        IClock _clock)
     {
         List<Building> buildings;
         try
@@ -121,7 +122,7 @@ public static class SwissKnife
                 minutes--;
 
                 // if the resource depleted, get the next one
-                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !isExhausted(planet) &&
+                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !IsExhausted(planet) &&
                     building.ResourceCategory == "solid")
                 {
                     resource = SwissKnife.GetHighestResource(planet);
@@ -132,16 +133,29 @@ public static class SwissKnife
         }
     }
 
-    private static bool isExhausted(PlanetSpecificationEditable planet)
+    // check if the planet resources are exhausted
+    private static bool IsExhausted(PlanetSpecificationEditable planet)
     {
-        foreach (var resource in planet.ResourceQuantity)
-        {
-            if (resource.Value > 0)
-            {
-                return false;
-            }
-        }
-        return true;
+        return planet.ResourceQuantity.All(resource => resource.Value <= 0);
     }
 
+    // check and remove the under construction buildings when the builder leaves the planet/system
+    public static void CheckAndRemoveOngoingBuildingsIfChangePlanet(string userId, string unitId,
+        Dictionary<User, List<Unit>> usersUnitsDb, Dictionary<User, List<Building>> usersBuildingsDb)
+    {
+        var user = usersUnitsDb.Keys.First(u => u.Id == userId);
+        var unit = usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId);
+        if (usersBuildingsDb.ContainsKey(user))
+        {
+            var buildingsToRemove = usersBuildingsDb[user].Where(b => b.BuilderId == unitId).ToList();
+            foreach (var building in buildingsToRemove.Where(building =>
+                         (unit!.Planet != unit.DestinationPlanet && unit.Planet == building.Planet &&
+                          !building.IsBuilt) ||
+                         (unit.System != unit.DestinationSystem && unit.System == building.System &&
+                          !building.IsBuilt)))
+            {
+                usersBuildingsDb[user].Remove(building);
+            }
+        }
+    }
 }

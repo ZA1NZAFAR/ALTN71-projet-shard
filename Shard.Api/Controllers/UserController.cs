@@ -20,9 +20,6 @@ public class UserController : Controller
         _celestialService = celestialService;
         _userService = userService;
         _clock = clock;
-
-        // provide celestialService instance to the user service
-        _userService.SetCelestialService(celestialService);
     }
 
     [HttpPut("users/{userId}")]
