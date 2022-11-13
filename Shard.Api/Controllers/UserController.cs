@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
@@ -22,12 +21,11 @@ public class UserController : Controller
         _userService = userService;
         _clock = clock;
 
+        // provide celestialService instance to the user service
         _userService.SetCelestialService(celestialService);
     }
 
     [HttpPut("users/{userId}")]
-    [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
-    [ProducesResponseType(typeof(User), (int)HttpStatusCode.NotFound)]
     public ActionResult<User> CreateUser(string userId, [FromBody] User user)
     {
         if (user == null || userId == null || userId != user.Id ||
@@ -50,9 +48,9 @@ public class UserController : Controller
         _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null), user);
+            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user);
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null), user);
+            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user);
 
         return user;
     }
@@ -63,92 +61,13 @@ public class UserController : Controller
     {
         var res = _userService.GetUser(userId);
         if (res == null)
-        {
             return new NotFoundResult();
-        }
 
-        updateResources(res);
+        // update user resources quantity
+        SwissKnife.UpdateResources(res, _userService, _celestialService, _clock);
         return res;
     }
 
-    private void updateResources(User res)
-    {
-        List<Building> buildings;
-        try
-        {
-            buildings = _userService.GetBuildingsOfUserById(res.Id);
-        }
-        catch (Exception ignored)
-        {
-            return;
-        }
-
-        foreach (var building in buildings)
-        {
-            if (!building.IsBuilt)
-            {
-                continue;
-            }
-
-            var minutes = (int)(_clock.Now - building.creationTime).TotalMinutes;
-            var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
-            ResourceKind resource;
-
-            if (building.ResourceCategory == "gaseous")
-            {
-                resource = ResourceKind.Oxygen;
-            }
-            else if (building.ResourceCategory == "liquid")
-            {
-                resource = ResourceKind.Water;
-            }
-            else
-            {
-                resource = SwissKnife.GetHighestResource(planet);
-            }
-
-            Console.WriteLine("Before -------------------");
-            foreach (var resorces in planet.ResourceQuantity)
-            {
-                Console.WriteLine(resorces.Key + " " + resorces.Value);
-            }
-
-            while (minutes > 0 && planet.ResourceQuantity[resource] > 0)
-            {
-                res.ResourcesQuantity[resource]++;
-                planet.ResourceQuantity[resource]--;
-                minutes--;
-
-                if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !isExhausted(planet) &&
-                    building.ResourceCategory == "solid")
-                {
-                    resource = SwissKnife.GetHighestResource(planet);
-                }
-            }
-
-            Console.WriteLine("Before -------------------");
-            foreach (var resorces in _celestialService.GetPlanetOfSystem(building.System, building.Planet)
-                         .ResourceQuantity)
-            {
-                Console.WriteLine(resorces.Key + " " + resorces.Value);
-            }
-
-            building.creationTime = _clock.Now;
-        }
-    }
-
-    private bool isExhausted(PlanetSpecificationEditable planet)
-    {
-        foreach (var resource in planet.ResourceQuantity)
-        {
-            if (resource.Value > 0)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     [HttpGet("users/{userId}/units")]
     public ActionResult<List<Unit>> GetAllUnits(string userId)
@@ -162,11 +81,9 @@ public class UserController : Controller
     {
         var x = _userService.GetUnitOfUserById(userId, unitId);
         if (x == null)
-        {
             return new NotFoundResult();
-        }
 
-
+        // wait if the movement is not finished and arrival time is less than 2 seconds
         if (x.MoveTask != null && x.ETA != null)
         {
             if (x.ETA - (_clock.Now.Second * 1000) <= 2000)
@@ -182,56 +99,55 @@ public class UserController : Controller
     public ActionResult<Unit> UpdateUnit(string userId, string unitId, [FromBody] Unit unit)
     {
         var x = _userService.UpdateUnitOfUserById(userId, unitId, unit, _clock);
+        if (x == null)
+            return new NotFoundResult();
         return x;
     }
 
     [HttpGet("users/{userId}/units/{unitId}/location")]
     public ActionResult<Location> GetUnitLocation(string userId, string unitId)
     {
-        var temp = _userService.GetUnitOfUserById(userId, unitId);
+        var unit = _userService.GetUnitOfUserById(userId, unitId);
 
-        var l = new Location(temp.System, _celestialService.GetPlanetOfSystem(temp.System, temp.Planet));
+        var location = new Location(unit.System, _celestialService.GetPlanetOfSystem(unit.System, unit.Planet));
 
-        if (temp.Type.Equals("builder"))
+        // getting builder doesn't return resources
+        if (unit.Type.Equals("builder"))
         {
-            l.resourcesQuantity = null;
+            location.resourcesQuantity = null;
         }
 
-        return l;
+        return location;
     }
 
     [HttpPost("users/{userId}/buildings")]
     public ActionResult<Building> CreateBuilding(string userId, [FromBody] Building building)
     {
+        // various checks --start
         if (building == null || building.BuilderId == null)
-        {
             return BadRequest("Building or builder id is null");
-        }
 
         if (!(building.ResourceCategory == null) && !building.ResourceCategory.Equals("gaseous") &&
             !building.ResourceCategory.Equals("solid") &&
             !building.ResourceCategory.Equals("liquid"))
-        {
             return BadRequest("Resource category is not valid");
-        }
 
         if (_userService.GetUser(userId) == null)
             return new NotFoundResult();
 
         if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty() ||
             !building.Type.Equals("mine"))
-        {
             return BadRequest();
-        }
+        // various checks --end
 
         try
         {
-            var x = _userService.CreateBuilding(userId, building, _clock);
-            return x;
+            var freshlyCreatedBuilding = _userService.CreateBuilding(userId, building, _clock);
+            return freshlyCreatedBuilding;
         }
-        catch (Exception ignored)
+        catch (Exception)
         {
-            return BadRequest();
+            return BadRequest("Building creation failed");
         }
     }
 
@@ -241,13 +157,14 @@ public class UserController : Controller
     {
         try
         {
+            // can return null if no buildings are found
             var buildings = _userService.GetBuildingsOfUserById(userId);
             if (buildings == null)
                 throw new Exception("No buildings found");
 
             return buildings;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return NotFound();
         }
@@ -255,7 +172,7 @@ public class UserController : Controller
 
 
     [HttpGet("users/{userId}/Buildings/{buildingId}")]
-    public async Task<ActionResult<Building>> GetBuilding(string userId, string buildingId)
+    public ActionResult<Building> GetBuilding(string userId, string buildingId)
     {
         try
         {
@@ -263,6 +180,7 @@ public class UserController : Controller
             if (building == null)
                 throw new Exception("No building found");
 
+            // wait if the building is not finished and finish time is less than 2 seconds - start
             if (building.BuildTask != null && building.EstimatedBuildTime != null)
             {
                 if (building.EstimatedBuildTime - _clock.Now <= TimeSpan.FromSeconds(2))
@@ -274,17 +192,18 @@ public class UserController : Controller
                         {
                             building = _userService.GetBuildingOfUserById(userId, buildingId);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             return NotFound();
                         }
                     }
                 }
             }
+            // wait if the building is not finished and finish time is less than 2 seconds - end
 
             return building;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return NotFound();
         }

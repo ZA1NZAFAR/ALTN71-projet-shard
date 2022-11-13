@@ -15,10 +15,9 @@ public interface IUserService
     List<Unit> GetUnitsOfUserById(string userId);
     Unit GetUnitOfUserById(string userId, string unitId);
     Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock);
-    ActionResult<Building> CreateBuilding(string userId, Building building, IClock clock);
+    Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
     Building GetBuildingOfUserById(string userId, string buildingId);
-    bool unitExists(string buildingBuilderId);
 }
 
 public class UserService : IUserService
@@ -143,7 +142,7 @@ public class UserService : IUserService
         });
     }
 
-    public ActionResult<Building> CreateBuilding(string userId, Building building, IClock clock)
+    public Building CreateBuilding(string userId, Building building, IClock clock)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
@@ -190,7 +189,7 @@ public class UserService : IUserService
                 building.IsBuilt = true;
                 building.EstimatedBuildTime = null;
                 building.BuildTask = null;
-                building.creationTime = clock.Now;
+                building.LastUpdate = clock.Now;
             }
         });
     }
@@ -211,10 +210,5 @@ public class UserService : IUserService
         if (_usersBuildingsDb.ContainsKey(user))
             return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId);
         throw new Exception();
-    }
-
-    public bool unitExists(string buildingBuilderId)
-    {
-        return _usersUnitsDb.Values.Any(u => u.Any(u => u.Id == buildingBuilderId));
     }
 }
