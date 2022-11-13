@@ -72,7 +72,7 @@ public class UserController : Controller
         {
             return new NotFoundResult();
         }
-
+        
         updateResources(res);
         return res;
     }
@@ -112,12 +112,23 @@ public class UserController : Controller
                 resource = SwissKnife.getHighestResource(planet);
             }
 
+            Console.WriteLine("Before -------------------");
+            foreach (var resorces in planet.ResourceQuantity)
+            {
+                Console.WriteLine(resorces.Key + " " + resorces.Value);
+            }
             while (minutes > 0 && planet.ResourceQuantity[resource] > 0)
             {
                 res.ResourcesQuantity[resource]++;
                 planet.ResourceQuantity[resource]--;
                 minutes--;
             }
+            Console.WriteLine("Before -------------------");
+            foreach (var resorces in _celestialService.GetPlanetOfSystem(building.System, building.Planet).ResourceQuantity)
+            {
+                Console.WriteLine(resorces.Key + " " + resorces.Value);
+            }
+            building.creationTime = _clock.Now;    
         }
     }
 
