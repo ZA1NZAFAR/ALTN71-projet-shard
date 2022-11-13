@@ -26,7 +26,8 @@ public class SwissKnife
 
         foreach (var resource in resources)
         {
-            if (resources[resource.Key] > highestQuantity)
+            if (resources[resource.Key] > highestQuantity && resource.Key != ResourceKind.Water &&
+                resource.Key != ResourceKind.Oxygen)
             {
                 highestQuantity = resources[resource.Key];
                 highestResource = resource.Key;

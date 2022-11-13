@@ -191,37 +191,10 @@ public class UserService : IUserService
                 building.EstimatedBuildTime = null;
                 building.BuildTask = null;
                 building.creationTime = clock.Now;
-                // building.MiningTask = MineBuildingBackgroundTask(building, user, clock);
             }
         });
     }
-
-    // private async Task MineBuildingBackgroundTask(Building building, User user, IClock clock)
-    // {
-    //     await Task.Run(async () =>
-    //     {
-    //         var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
-    //         var resourceKind = SwissKnife.getResourceKindFromString(building.ResourceCategory);
-    //         while (true)
-    //         {
-    //             if (clock.Now - building.lastExtraction >= TimeSpan.FromMinutes(1))
-    //             {
-    //                 if (planet.ResourceQuantity.ContainsKey(resourceKind))
-    //                 {
-    //                     if (planet.ResourceQuantity[resourceKind] > 0)
-    //                     {
-    //                         user.ResourcesQuantity[resourceKind] += 1;
-    //                     }
-    //                 }
-    //
-    //                 building.lastExtraction = clock.Now;
-    //             }
-    //             
-    //             await clock.Delay(TimeSpan.FromMinutes(1));
-    //         }
-    //     });
-    // }
-
+    
     public List<Building> GetBuildingsOfUserById(string userId)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
