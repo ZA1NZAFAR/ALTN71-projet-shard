@@ -266,7 +266,18 @@ public class UserController : Controller
             {
                 if (building.EstimatedBuildTime - _clock.Now <= TimeSpan.FromSeconds(2))
                 {
-                    await building.BuildTask;
+                    // keep refreshing building object in case it gets updated/deleted during the wait
+                    while (building.EstimatedBuildTime - _clock.Now >= TimeSpan.Zero)
+                    {
+                        try
+                        {
+                            building = _userService.GetBuildingOfUserById(userId, buildingId);
+                        }
+                        catch (Exception e)
+                        {
+                            return NotFound();
+                        }
+                    }
                 }
             }
 
