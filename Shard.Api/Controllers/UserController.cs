@@ -114,7 +114,7 @@ public class UserController : Controller
         // getting builder doesn't return resources
         if (unit.Type.Equals("builder"))
         {
-            location.resourcesQuantity = null;
+            location.ResourcesQuantity = null;
         }
 
         return location;

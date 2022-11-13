@@ -1,4 +1,5 @@
 using Shard.Api.Models;
+using Shard.Api.Models.EditableObjects;
 using Shard.Api.Services;
 using Shard.Shared.Core;
 

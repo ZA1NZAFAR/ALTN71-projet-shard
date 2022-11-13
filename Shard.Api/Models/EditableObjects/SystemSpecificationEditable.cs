@@ -1,4 +1,4 @@
-﻿namespace Shard.Shared.Core;
+﻿namespace Shard.Api.Models.EditableObjects;
 
 public class SystemSpecificationEditable
 {

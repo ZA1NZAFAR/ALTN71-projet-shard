@@ -1,4 +1,6 @@
-﻿namespace Shard.Shared.Core;
+﻿using Shard.Shared.Core;
+
+namespace Shard.Api.Models.EditableObjects;
 
 public class SectorSpecificationEditable
 {

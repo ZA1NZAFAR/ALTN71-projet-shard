@@ -1,3 +1,4 @@
+using Shard.Api.Models.EditableObjects;
 using Shard.Api.Tools;
 using Shard.Shared.Core;
 

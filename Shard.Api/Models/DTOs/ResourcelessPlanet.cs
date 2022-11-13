@@ -1,3 +1,4 @@
+using Shard.Api.Models.EditableObjects;
 using Shard.Shared.Core;
 
 namespace Shard.Api.Models;
@@ -6,7 +7,6 @@ public class ResourcelessPlanet
 {
     public string Name { get; }
     public int Size { get; }
-    
     
     public ResourcelessPlanet(PlanetSpecificationEditable planetSpecification)
     {
