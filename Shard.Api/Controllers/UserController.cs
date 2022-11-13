@@ -73,13 +73,22 @@ public class UserController : Controller
             return new NotFoundResult();
         }
 
-//        updateResources(res);
+        updateResources(res);
         return res;
     }
 
     private void updateResources(User res)
     {
-        var buildings = _userService.GetBuildingsOfUserById(res.Id);
+        List<Building> buildings;
+        try
+        {
+            buildings = _userService.GetBuildingsOfUserById(res.Id);
+        }
+        catch (Exception ignored)
+        {
+            return;
+        }
+
         foreach (var building in buildings)
         {
             if (!building.IsBuilt)
@@ -103,7 +112,12 @@ public class UserController : Controller
                 resource = SwissKnife.getHighestResource(planet);
             }
 
-            res.ResourcesQuantity[resource] += minutes;
+            while (minutes > 0 && planet.ResourceQuantity[resource] > 0)
+            {
+                res.ResourcesQuantity[resource]++;
+                planet.ResourceQuantity[resource]--;
+                minutes--;
+            }
         }
     }
 
@@ -162,14 +176,14 @@ public class UserController : Controller
     {
         if (building == null || building.BuilderId == null)
         {
-            return BadRequest();
+            return BadRequest("Building or builder id is null");
         }
 
         if (!(building.ResourceCategory == null) && !building.ResourceCategory.Equals("gaseous") &&
             !building.ResourceCategory.Equals("solid") &&
             !building.ResourceCategory.Equals("liquid"))
         {
-            return BadRequest();
+            return BadRequest("Resource category is not valid");
         }
 
         if (_userService.GetUser(userId) == null)

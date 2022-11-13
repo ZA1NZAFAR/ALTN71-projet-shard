@@ -79,8 +79,9 @@ public class UserService : IUserService
             var buildingsToRemove = _usersBuildingsDb[user].Where(b => b.BuilderId == unitId).ToList();
             foreach (var building in buildingsToRemove)
             {
-                if (unit.Planet != unit.DestinationPlanet && unit.Planet == building.Planet &&
-                    !building.IsBuilt)
+                if ((unit.Planet != unit.DestinationPlanet && unit.Planet == building.Planet &&
+                     !building.IsBuilt) || (unit.System != unit.DestinationSystem && unit.System == building.System &&
+                                            !building.IsBuilt))
                 {
                     _usersBuildingsDb[user].Remove(building);
                 }
@@ -119,7 +120,7 @@ public class UserService : IUserService
         {
             checkAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id);
             var tmp = _usersUnitsDb[user].First(u => u.Id == unit.Id);
-            if ((tmp.System == null) ||
+            if ((tmp.System == null && tmp.DestinationSystem != null) ||
                 (tmp.DestinationSystem != null && !tmp.System.Equals(tmp.DestinationSystem))
                )
             {
@@ -130,9 +131,10 @@ public class UserService : IUserService
                 tmp.LastUpdate = clock.Now;
             }
 
-            if (tmp.Planet == null ||
+            if ((tmp.Planet == null && tmp.DestinationPlanet != null) ||
                 (tmp.DestinationPlanet != null && !tmp.Planet.Equals(tmp.DestinationPlanet)))
             {
+                checkAndRemoveOngoingBuildingsIfChangePlanet(user.Id, unit.Id);
                 tmp.ETA += 15000;
                 await clock.Delay(15000);
                 tmp.Planet = tmp.DestinationPlanet;
@@ -150,24 +152,26 @@ public class UserService : IUserService
             var unit = _usersUnitsDb[user].Find(u => u.Id == building.BuilderId);
             if (unit != null)
             {
-                if (unit.Planet == null || unit.System == null || unit.Type != "builder")
+                if (unit.Type != "builder" || unit.Planet == null || unit.System == null)
                 {
-                    throw new Exception();
+                    throw new Exception("Unit is not a builder");
                 }
 
                 building.System = unit.System;
                 building.Planet = unit.Planet;
-                if (building.Id  == null)
+                if (building.Id == null)
                 {
                     building.Id = Guid.NewGuid().ToString();
                 }
+
                 building.EstimatedBuildTime = clock.Now.AddMinutes(5);
 
-                building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
                 if (_usersBuildingsDb.ContainsKey(user))
                     _usersBuildingsDb[user].Add(building);
                 else
                     _usersBuildingsDb.Add(user, new List<Building> { building });
+                building.BuildTask = BuildBuildingBackgroundTask(building, user, clock);
+
 
                 return building;
             }
@@ -224,7 +228,7 @@ public class UserService : IUserService
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (_usersBuildingsDb.ContainsKey(user))
             return _usersBuildingsDb[user];
-        throw new Exception("User not found");
+        throw new Exception("No buildings found");
     }
 
     public Building GetBuildingOfUserById(string userId, string buildingId)
