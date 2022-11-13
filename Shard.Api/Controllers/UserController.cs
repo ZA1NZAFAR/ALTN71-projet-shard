@@ -67,11 +67,8 @@ public class UserController : Controller
 
 
     [HttpGet("users/{userId}/units")]
-    public ActionResult<List<Unit>> GetAllUnits(string userId)
-    {
-        var x = _userService.GetUnitsOfUserById(userId);
-        return x;
-    }
+    public List<Unit> GetAllUnits(string userId)
+        => _userService.GetUnitsOfUserById(userId) ?? throw new InvalidOperationException();
 
     [HttpGet("users/{userId}/units/{unitId}")]
     public async Task<ActionResult<Unit>> GetUnit(string userId, string unitId)
