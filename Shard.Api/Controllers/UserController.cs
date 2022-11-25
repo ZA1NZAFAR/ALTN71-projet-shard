@@ -30,6 +30,10 @@ public class UserController : Controller
            )
             return BadRequest();
 
+        if (_userService.ifExistThenUpdateUser(user))
+        {
+            return Ok(user);
+        }
 
         user.ResourcesQuantity = new Dictionary<ResourceKind, int>()
         {
@@ -131,6 +135,11 @@ public class UserController : Controller
 
         if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty())
             return BadRequest();
+
+        if (!building.Type.Equals("mine") && !building.Type.Equals("starport"))
+        {
+            return BadRequest();
+        }
         // various checks --end
 
         try

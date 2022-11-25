@@ -15,6 +15,7 @@ public interface IUserService
     Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
     Building GetBuildingOfUserById(string userId, string buildingId);
+    bool ifExistThenUpdateUser(User user);
 }
 
 public class UserService : IUserService
@@ -134,5 +135,17 @@ public class UserService : IUserService
             return _usersBuildingsDb[user].FirstOrDefault(u => u.Id == buildingId) ??
                    throw new InvalidOperationException();
         throw new Exception("No buildings found");
+    }
+
+    public bool ifExistThenUpdateUser(User user)
+    {
+        var userFound = _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == user.Id);
+        if (userFound != null)
+        {
+            userFound.ResourcesQuantity = user.ResourcesQuantity;
+            return true;
+        }
+
+        return false;
     }
 }
