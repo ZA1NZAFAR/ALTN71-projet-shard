@@ -129,8 +129,7 @@ public class UserController : Controller
         if (_userService.GetUser(userId) == null)
             return new NotFoundResult();
 
-        if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty() ||
-            !building.Type.Equals("mine"))
+        if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty())
             return BadRequest();
         // various checks --end
 

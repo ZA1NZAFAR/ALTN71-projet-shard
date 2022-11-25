@@ -13,8 +13,11 @@ public class Unit
     public string DestinationPlanet { get; set; }
     public string DestinationSystem { get; set; }
 
+    [JsonIgnore]
     public DateTime LastUpdate { get; set; }
+    [JsonIgnore]
     public Task MoveTask { get; set; }
+    [JsonIgnore]
     public int ETA { get; set; }
 
 
