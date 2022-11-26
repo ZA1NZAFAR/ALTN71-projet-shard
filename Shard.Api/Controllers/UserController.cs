@@ -4,6 +4,7 @@ using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shard.Api.Models;
+using Shard.Api.Models.Exceptions;
 using Shard.Api.Services;
 using Shard.Api.Tools;
 using Shard.Shared.Core;
@@ -104,10 +105,17 @@ public class UserController : Controller
     [HttpPut("users/{userId}/units/{unitId}")]
     public ActionResult<Unit> UpdateUnit(string userId, string unitId, [FromBody] Unit unit)
     {
-        var x = _userService.UpdateUnitOfUserById(userId, unitId, unit, _clock);
-        if (x == null)
-            return new NotFoundResult();
-        return x;
+        try
+        {
+            var x = _userService.UpdateUnitOfUserById(userId, unitId, unit, _clock, _isAuthenticated);
+            if (x == null)
+                return new NotFoundResult();
+            return x;
+        }
+        catch (IsUnauthorizedException e)
+        {
+            return new UnauthorizedResult();
+        }
     }
 
     [HttpGet("users/{userId}/units/{unitId}/location")]

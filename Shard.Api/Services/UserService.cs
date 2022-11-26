@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
+using Shard.Api.Models.Exceptions;
 using Shard.Api.Tools;
 using Shard.Shared.Core;
 
@@ -12,7 +13,7 @@ public interface IUserService
     User? GetUser(string userId);
     List<Unit>? GetUnitsOfUserById(string userId);
     Unit? GetUnitOfUserById(string userId, string unitId);
-    Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock);
+    Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock,bool isAuthenticated);
     Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
     Building GetBuildingOfUserById(string userId, string buildingId);
@@ -61,14 +62,22 @@ public class UserService : IUserService
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
-    public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock)
+    public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock, bool isAuthenticated)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
         {
-            var unit = _usersUnitsDb[user].First(u => u.Id == unitId);
+            var unit = _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId);
             if (unit == null)
-                throw new Exception("Unit not found");
+            {
+                if (isAuthenticated)
+                {
+                    _usersUnitsDb[user].Add(unitUpdated);
+                    return unitUpdated;
+                }
+
+                throw new IsUnauthorizedException();
+            }
 
             unit.DestinationSystem = unitUpdated.DestinationSystem;
             unit.DestinationPlanet = unitUpdated.DestinationPlanet;
