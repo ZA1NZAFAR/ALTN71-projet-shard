@@ -12,6 +12,7 @@ public class Unit
 
     public string DestinationPlanet { get; set; }
     public string DestinationSystem { get; set; }
+    public int Health { get; set; }
 
     [JsonIgnore]
     public DateTime LastUpdate { get; set; }

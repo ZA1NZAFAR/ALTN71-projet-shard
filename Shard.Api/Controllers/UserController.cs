@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
@@ -25,15 +26,33 @@ public class UserController : Controller
     [HttpPut("users/{userId}")]
     public ActionResult<User> CreateUser(string userId, [FromBody] User user)
     {
+        string authHeader = Request.Headers["Authorization"];
+
         if (user == null || userId == null || userId != user.Id ||
             userId.Length == 1 && Regex.IsMatch(userId, @"[!@#$'%^&*()_+=\[{\]};:<>|./?,-]")
            )
             return BadRequest();
 
-        if (_userService.ifExistThenUpdateUser(user))
+        if (authHeader != null && authHeader.StartsWith("Basic"))
         {
-            return Ok(user);
+            string encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
+            Encoding encoding = Encoding.GetEncoding("iso-8859-1");
+            string usernamePassword = encoding.GetString(Convert.FromBase64String(encodedUsernamePassword));
+
+            int seperatorIndex = usernamePassword.IndexOf(':');
+
+            var username = usernamePassword.Substring(0, seperatorIndex);
+            var password = usernamePassword.Substring(seperatorIndex + 1);
+
+            if (username.Equals("admin") && password.Equals("password") )
+            {
+                if (_userService.ifExistThenUpdateUser(user))
+                {
+                    return Ok(user);
+                }
+            }
         }
+
 
         user.ResourcesQuantity = new Dictionary<ResourceKind, int>()
         {
@@ -198,6 +217,7 @@ public class UserController : Controller
                         {
                             return NotFound();
                         }
+
                         Thread.Sleep(500);
                     }
                 }
@@ -209,6 +229,30 @@ public class UserController : Controller
         catch (Exception)
         {
             return NotFound();
+        }
+    }
+
+    [HttpPost("/users/{userId}/Buildings/{starportId}/queue")]
+    public ActionResult<Unit> AddToQueue(string userId, string starportId, [FromBody] UnitType unit)
+    {
+        try
+        {
+            var starport = _userService.GetBuildingOfUserById(userId, starportId);
+            if (starport == null)
+                throw new Exception("No starport found");
+
+            if (!starport.Type.Equals("starport"))
+                throw new Exception("Building is not a starport");
+
+            if (unit == null || unit.Type.IsEmpty())
+                throw new Exception("Building or building type is null");
+
+            var res = _userService.AddToQueue(userId, starportId, unit, _clock);
+            return res;
+        }
+        catch (Exception)
+        {
+            return BadRequest();
         }
     }
 }

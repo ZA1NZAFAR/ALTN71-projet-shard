@@ -159,4 +159,37 @@ public static class SwissKnife
             }
         }
     }
+
+    public static Dictionary<ResourceKind, int> GetUnitCost(string unitType)
+    {
+        switch (unitType)
+        {
+            case "scout": return new Dictionary<ResourceKind, int>
+            {
+                { ResourceKind.Carbon, 5 },
+                { ResourceKind.Iron, 5 }
+            };
+            case "builder": return new Dictionary<ResourceKind, int>
+            {
+                { ResourceKind.Carbon, 5 },
+                { ResourceKind.Iron, 10 }
+            };
+            case "fighter": return new Dictionary<ResourceKind, int>
+            {
+                { ResourceKind.Iron, 20 },
+                { ResourceKind.Aluminium, 10 }
+            };
+            case "bomber": return new Dictionary<ResourceKind, int>
+            {
+                { ResourceKind.Iron, 20 },
+                { ResourceKind.Titanium, 10 }
+            };
+            case "cruiser": return new Dictionary<ResourceKind, int>
+            {
+                { ResourceKind.Iron, 60 },
+                { ResourceKind.Gold, 20 }
+            };
+            default: throw new Exception("Invalid unit type");
+        }
+    }
 }
