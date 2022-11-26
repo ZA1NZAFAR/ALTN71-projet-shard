@@ -19,6 +19,7 @@ public interface IUserService
     Building GetBuildingOfUserById(string userId, string buildingId);
     bool ifExistThenUpdateUser(User user);
     Unit AddToQueue(string userId, string starportId, UnitType unit, IClock clock);
+    IEnumerable<User> GetAllUsers();
 }
 
 public class UserService : IUserService
@@ -218,5 +219,10 @@ public class UserService : IUserService
         }
 
         throw new Exception("No buildings found");
+    }
+
+    public IEnumerable<User> GetAllUsers()
+    {
+        return _usersUnitsDb.Keys.Union(_usersBuildingsDb.Keys);
     }
 }

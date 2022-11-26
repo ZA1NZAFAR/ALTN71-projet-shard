@@ -72,9 +72,6 @@ public class UserController : Controller
         var res = _userService.GetUser(userId);
         if (res == null)
             return new NotFoundResult();
-
-        // update user resources quantity
-        SwissKnife.UpdateResources(res, _userService, _celestialService, _clock);
         return res;
     }
 
@@ -291,6 +288,12 @@ public class UserController : Controller
             }
         }
 
+        // Every request triggers resource update for all users
+        foreach (var user in _userService.GetAllUsers())
+        {
+            // update user resources quantity
+            SwissKnife.UpdateResources(user, _userService, _celestialService, _clock);
+        }
 
         base.OnActionExecuting(context);
     }
