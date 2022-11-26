@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Shard.Api.Models;
 using Shard.Api.Services;
 using Shard.Api.Tools;
@@ -14,6 +15,7 @@ public class UserController : Controller
     private readonly ICelestialService _celestialService;
     private readonly IUserService _userService;
     private readonly IClock _clock;
+    private bool _isAuthenticated;
 
 
     public UserController(ICelestialService celestialService, IUserService userService, IClock clock)
@@ -26,30 +28,17 @@ public class UserController : Controller
     [HttpPut("users/{userId}")]
     public ActionResult<User> CreateUser(string userId, [FromBody] User user)
     {
-        string authHeader = Request.Headers["Authorization"];
-
         if (user == null || userId == null || userId != user.Id ||
             userId.Length == 1 && Regex.IsMatch(userId, @"[!@#$'%^&*()_+=\[{\]};:<>|./?,-]")
            )
             return BadRequest();
 
-        if (authHeader != null && authHeader.StartsWith("Basic"))
+
+        if (_isAuthenticated)
         {
-            string encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
-            Encoding encoding = Encoding.GetEncoding("iso-8859-1");
-            string usernamePassword = encoding.GetString(Convert.FromBase64String(encodedUsernamePassword));
-
-            int seperatorIndex = usernamePassword.IndexOf(':');
-
-            var username = usernamePassword.Substring(0, seperatorIndex);
-            var password = usernamePassword.Substring(seperatorIndex + 1);
-
-            if (username.Equals("admin") && password.Equals("password") )
+            if (_userService.ifExistThenUpdateUser(user))
             {
-                if (_userService.ifExistThenUpdateUser(user))
-                {
-                    return Ok(user);
-                }
+                return Ok(user);
             }
         }
 
@@ -254,5 +243,31 @@ public class UserController : Controller
         {
             return BadRequest();
         }
+    }
+
+    // override OnActionExecuting to check if the user is authenticated
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        string authHeader = Request.Headers["Authorization"];
+
+        if (authHeader != null && authHeader.StartsWith("Basic"))
+        {
+            string encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
+            Encoding encoding = Encoding.GetEncoding("iso-8859-1");
+            string usernamePassword = encoding.GetString(Convert.FromBase64String(encodedUsernamePassword));
+
+            int seperatorIndex = usernamePassword.IndexOf(':');
+
+            var username = usernamePassword.Substring(0, seperatorIndex);
+            var password = usernamePassword.Substring(seperatorIndex + 1);
+
+            if (username.Equals("admin") && password.Equals("password"))
+            {
+                _isAuthenticated = true;
+            }
+        }
+
+
+        base.OnActionExecuting(context);
     }
 }
