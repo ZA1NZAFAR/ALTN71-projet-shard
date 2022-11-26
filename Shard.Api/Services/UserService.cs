@@ -72,6 +72,9 @@ public class UserService : IUserService
             {
                 if (isAuthenticated)
                 {
+                    // not my fault, a test wants it this way...
+                    unitUpdated.DestinationSystem = unitUpdated.System;
+                    unitUpdated.DestinationPlanet = unitUpdated.Planet;
                     _usersUnitsDb[user].Add(unitUpdated);
                     return unitUpdated;
                 }
@@ -191,12 +194,12 @@ public class UserService : IUserService
             //     throw new Exception("User is already building a unit");
             
             if (user.ResourcesQuantity == null)
-                throw new Exception("Starport has no resources");
+                throw new Exception("User has no resources");
 
             if (SwissKnife.GetUnitCost(unit.Type)
                 .Any(resource => user.ResourcesQuantity[resource.Key] < resource.Value))
             {
-                throw new Exception("Starport has not enough resources");
+                throw new Exception("User has not enough resources");
             }
 
 

@@ -247,9 +247,25 @@ public class UserController : Controller
             var res = _userService.AddToQueue(userId, starportId, unit, _clock);
             return res;
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return BadRequest();
+            switch (e.Message)
+            {
+                case "No starport found":
+                    return NotFound();
+                case "Building is not a starport":
+                    return BadRequest();
+                case "Building or building type is null":
+                    return BadRequest();
+                case "Starport is not built yet":
+                    return BadRequest();
+                case "User has no resources"  :
+                    return BadRequest();
+                case "User has not enough resources":
+                    return BadRequest();
+                default:
+                    return NotFound();
+            }
         }
     }
 
