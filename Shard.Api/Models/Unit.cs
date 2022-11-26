@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using Shard.Shared.Core;
+using Microsoft.VisualBasic;
 
 namespace Shard.Api.Models;
 
@@ -13,13 +13,12 @@ public class Unit
     public string DestinationPlanet { get; set; }
     public string DestinationSystem { get; set; }
     public int Health { get; set; }
+    
 
+    [JsonIgnore] public List<Weapon> Weapons { get; set; }
     [JsonIgnore] public DateTime LastUpdate { get; set; }
     [JsonIgnore] public Task MoveTask { get; set; }
     [JsonIgnore] public int ETA { get; set; }
-
-
-    SystemSpecification SystemSpecification { get; set; }
 
 
     [JsonConstructor]
@@ -35,7 +34,28 @@ public class Unit
             "bomber" => 50,
             "cruiser" => 400,
             "fighter" => 80,
-            _ => throw new Exception("Unknown unit type")
+            _ => 0
         };
+        EquipWeapons();
+    }
+
+    private void EquipWeapons()
+    {
+        Weapons = new List<Weapon>();
+        switch (Type)
+        {
+            case "bomber":
+                Weapons.Add(new Weapon("canon", 10,TimeSpan.FromSeconds(6),DateTime.Now));
+                break;
+            case "cruiser":
+                Weapons.Add(new Weapon("canon", 10,TimeSpan.FromSeconds(6),DateTime.Now));
+                Weapons.Add(new Weapon("canon", 10,TimeSpan.FromSeconds(6),DateTime.Now));
+                Weapons.Add(new Weapon("canon", 10,TimeSpan.FromSeconds(6),DateTime.Now));
+                Weapons.Add(new Weapon("canon", 10,TimeSpan.FromSeconds(6),DateTime.Now));
+                break;
+            case "fighter":
+                Weapons.Add(new Weapon("bomb", 400,TimeSpan.FromSeconds(60),DateTime.Now));
+                break;
+        }
     }
 }
