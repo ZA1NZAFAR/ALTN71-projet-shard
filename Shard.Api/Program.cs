@@ -16,6 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ICelestialService, CelestialService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<IClock, SystemClock>();
+// builder.Services.AddHostedService<TimedService>();
 
 // API returns camelCase JSONs
 builder.Services.AddControllers()

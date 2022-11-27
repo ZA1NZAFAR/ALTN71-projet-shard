@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Collections;
+using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Models.Exceptions;
 using Shard.Api.Tools;
@@ -13,13 +14,18 @@ public interface IUserService
     User? GetUser(string userId);
     List<Unit>? GetUnitsOfUserById(string userId);
     Unit? GetUnitOfUserById(string userId, string unitId);
-    Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock,bool isAuthenticated);
+    Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock, bool isAuthenticated);
     Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
     Building GetBuildingOfUserById(string userId, string buildingId);
     bool ifExistThenUpdateUser(User user);
     Unit AddToQueue(string userId, string starportId, UnitType unit, IClock clock);
     IEnumerable<User> GetAllUsers();
+    List<string> GetAllPlanetsHavingUnits();
+    List<Unit> getAllUnitsOfAPlanet(string planet);
+    void DeleteUnit(string unitAOwner, string unitAId);
+    IEnumerable GetAllSystemsHavingUnits();
+    List<Unit> getAllUnitsOfASystem(string systemId);
 }
 
 public class UserService : IUserService
@@ -44,6 +50,7 @@ public class UserService : IUserService
 
     public void AddUnitUser(Unit unit, User user)
     {
+        unit.Owner = user.Id;
         if (_usersUnitsDb.ContainsKey(user))
             _usersUnitsDb[user].Add(unit);
     }
@@ -63,7 +70,8 @@ public class UserService : IUserService
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
-    public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock, bool isAuthenticated)
+    public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock,
+        bool isAuthenticated)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
         if (user != null)
@@ -193,7 +201,7 @@ public class UserService : IUserService
             //     throw new Exception("Unit already in queue");
             // if (starport.EstimatedBuildTime != null)
             //     throw new Exception("User is already building a unit");
-            
+
             if (user.ResourcesQuantity == null)
                 throw new Exception("User has no resources");
 
@@ -212,7 +220,7 @@ public class UserService : IUserService
             }
 
             var unitToAdd = new Unit(Guid.NewGuid().ToString(), unit.Type, starport.System, starport.Planet);
-            
+
             _usersUnitsDb[user].Add(unitToAdd);
 
             return unitToAdd;
@@ -224,5 +232,39 @@ public class UserService : IUserService
     public IEnumerable<User> GetAllUsers()
     {
         return _usersUnitsDb.Keys.Union(_usersBuildingsDb.Keys);
+    }
+
+    public List<string> GetAllPlanetsHavingUnits()
+    {
+        return _usersUnitsDb.Values.SelectMany(u => u).Select(u => u.Planet).Distinct().ToList();
+    }
+
+    public List<Unit> getAllUnitsOfAPlanet(string planet)
+    {
+        return _usersUnitsDb.Values.SelectMany(u => u).Where(u => u.Planet == planet).ToList();
+    }
+
+    public void DeleteUnit(string unitAOwner, string unitAId)
+    {
+        var user = _usersUnitsDb.Keys.First(u => u.Id == unitAOwner);
+        if (user == null)
+            throw new Exception("User not found");
+        if (_usersUnitsDb.ContainsKey(user))
+        {
+            var unit = _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitAId);
+            if (unit == null)
+                throw new Exception("Unit not found");
+            _usersUnitsDb[user].Remove(unit);
+        }
+    }
+
+    public IEnumerable GetAllSystemsHavingUnits()
+    {
+        return _usersUnitsDb.Values.SelectMany(u => u).Select(u => u.System).Distinct().ToList();
+    }
+
+    public List<Unit> getAllUnitsOfASystem(string systemId)
+    {
+        return _usersUnitsDb.Values.SelectMany(u => u).Where(u => u.System == systemId).ToList();
     }
 }

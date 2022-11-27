@@ -251,6 +251,7 @@ public partial class BaseIntegrationTests<TEntryPoint, TWebApplicationFactory>
         Assert.Equal(50, bomber2.Health);
 
         await fakeClock.Advance(TimeSpan.FromSeconds(1));
+        Thread.Sleep(2000);
         await AssertUnitNotFound(client, units.Item1);
         await AssertUnitNotFound(client, units.Item2);
     }

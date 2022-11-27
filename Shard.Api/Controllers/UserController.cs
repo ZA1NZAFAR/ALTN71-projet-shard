@@ -24,6 +24,7 @@ public class UserController : Controller
         _celestialService = celestialService;
         _userService = userService;
         _clock = clock;
+        new TimedService(_clock, _userService,_celestialService).StartAsync(new CancellationToken());
     }
 
     [HttpPut("users/{userId}")]
