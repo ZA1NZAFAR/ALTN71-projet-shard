@@ -24,7 +24,7 @@ public class UserController : Controller
         _celestialService = celestialService;
         _userService = userService;
         _clock = clock;
-        new TimedService(_clock, _userService,_celestialService).StartAsync(new CancellationToken());
+        new TimedService(_clock, _userService,_celestialService).StartAsync(new CancellationToken(false));
     }
 
     [HttpPut("users/{userId}")]
@@ -59,9 +59,9 @@ public class UserController : Controller
         _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user);
+            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user,_clock);
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user);
+            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user,_clock);
 
         return user;
     }
@@ -97,6 +97,11 @@ public class UserController : Controller
             }
         }
 
+        if (SwissKnife.IsCombatUnit(x.Type) && x.Damage>=x.Health)
+        {
+            return NotFound();
+        }
+
         return x;
     }
 
@@ -105,6 +110,8 @@ public class UserController : Controller
     {
         try
         {
+            unit.Owner = userId;
+            unit.EquipWeapons(_clock);
             var x = _userService.UpdateUnitOfUserById(userId, unitId, unit, _clock, _isAuthenticated);
             if (x == null)
                 return new NotFoundResult();
@@ -295,6 +302,9 @@ public class UserController : Controller
             // update user resources quantity
             SwissKnife.UpdateResources(user, _userService, _celestialService, _clock);
         }
+        
+        // BackGroundTasks.Fight(_userService, _celestialService, _clock);
+
 
         base.OnActionExecuting(context);
     }

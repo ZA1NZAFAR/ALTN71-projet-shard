@@ -22,14 +22,14 @@ public class TimedService : IHostedService, IDisposable
     {
         Console.WriteLine("Timed Hosted Service running.");
 
-        _timer = _clock.CreateTimer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
+        _timer = _clock.CreateTimer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1000));
 
         return Task.CompletedTask;
     }
 
     private async void DoWork(object? state)
     {
-         BackGroundTasks.Fight(_userService, _celestialService, _clock);
+         await BackGroundTasks.Fight(_userService, _celestialService, _clock);
     }
 
     public Task StopAsync(CancellationToken stoppingToken)

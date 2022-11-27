@@ -10,7 +10,7 @@ namespace Shard.Api.Services;
 public interface IUserService
 {
     public void AddUser(User user);
-    public void AddUnitUser(Unit unit, User user);
+    public void AddUnitUser(Unit unit, User user,IClock clock);
     User? GetUser(string userId);
     List<Unit>? GetUnitsOfUserById(string userId);
     Unit? GetUnitOfUserById(string userId, string unitId);
@@ -48,9 +48,10 @@ public class UserService : IUserService
             _usersUnitsDb.Add(user, new List<Unit>());
     }
 
-    public void AddUnitUser(Unit unit, User user)
+    public void AddUnitUser(Unit unit, User user,IClock clock)
     {
         unit.Owner = user.Id;
+        unit.EquipWeapons(clock);
         if (_usersUnitsDb.ContainsKey(user))
             _usersUnitsDb[user].Add(unit);
     }
@@ -220,6 +221,8 @@ public class UserService : IUserService
             }
 
             var unitToAdd = new Unit(Guid.NewGuid().ToString(), unit.Type, starport.System, starport.Planet);
+            unitToAdd.Owner = userId;
+            unitToAdd.EquipWeapons(clock);
 
             _usersUnitsDb[user].Add(unitToAdd);
 
@@ -246,7 +249,7 @@ public class UserService : IUserService
 
     public void DeleteUnit(string unitAOwner, string unitAId)
     {
-        var user = _usersUnitsDb.Keys.First(u => u.Id == unitAOwner);
+        var user = _usersUnitsDb.Keys.First(u => u.Id.Equals( unitAOwner));
         if (user == null)
             throw new Exception("User not found");
         if (_usersUnitsDb.ContainsKey(user))

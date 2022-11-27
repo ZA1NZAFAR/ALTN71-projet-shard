@@ -192,4 +192,10 @@ public static class SwissKnife
             default: throw new Exception("Invalid unit type");
         }
     }
+    
+    //check if unit is a combat unit
+    public static bool IsCombatUnit(string unitType)
+    {
+        return unitType == "fighter" || unitType == "bomber" || unitType == "cruiser";
+    }
 }

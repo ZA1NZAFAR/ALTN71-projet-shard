@@ -58,14 +58,17 @@ public static class BackGroundTasks
 
     public static async Task Fight(IUserService userService, ICelestialService celestialService, IClock clock)
     {
-        await Task.Run(async () =>
+        await Task.Run(() =>
         {
             Console.Write("Fight started");
             var allSystemsHavingUnits = userService.GetAllSystemsHavingUnits();
             foreach (string system in allSystemsHavingUnits)
             {
                 var unitsInSystem = userService.getAllUnitsOfASystem(system);
-                
+
+                // remove all units of type builder and scout
+                unitsInSystem.RemoveAll(u => u.Type.Equals("scout") || u.Type.Equals("builder"));
+
                 //separate units by owner
                 var unitsByOwner = unitsInSystem.GroupBy(u => u.Id).ToDictionary(u => u.Key, u => u.ToList());
 
@@ -74,53 +77,42 @@ public static class BackGroundTasks
 
                 if (unitsGroupedByOwnerListCount > 1)
                 {
-                    for (var i = 0; i < unitsGroupedByOwnerListCount; i++)
+                    for (var i = 0; i < unitsGroupedByOwnerListCount; i+=2)
                     {
                         var listA = unitsByOwner[unitsByOwner.Keys.ElementAt(i)];
                         foreach (var unitA in listA)
                         {
                             for (var j = i + 1; j < unitsGroupedByOwnerListCount; j++)
                             {
-                                var listB =unitsByOwner[unitsByOwner.Keys.ElementAt(j)];
+                                var listB = unitsByOwner[unitsByOwner.Keys.ElementAt(j)];
                                 foreach (var unitB in listB)
                                 {
                                     if (unitA.System.Equals(unitB.System))
                                     {
                                         for (int k = 0; k < Math.Max(unitA.Weapons.Count, unitB.Weapons.Count); k++)
                                         {
-                                            var unitAWeapon = unitA.Weapons[k] == null ? null : unitA.Weapons[k];
-                                            var unitBWeapon = unitB.Weapons[k] == null ? null : unitB.Weapons[k];
+                                            var unitAWeapon = unitA.Weapons[k];
+                                            var unitBWeapon = unitB.Weapons[k];
 
 
-                                            if (unitAWeapon != null && unitB.Health > 0 &&
-                                                (unitA.Weapons[k].LastUsed == null ||
-                                                 unitAWeapon.LastUsed +
-                                                 unitAWeapon.Interval <=
-                                                 clock.Now))
+                                            if (unitB.Health > 0 &&
+                                                (unitAWeapon.LastUsed.Add(
+                                                 unitAWeapon.Interval)) <=
+                                                 clock.Now)
                                             {
-                                                unitA.Weapons[k].LastUsed = clock.Now;
-                                                unitB.Health -= unitA.Weapons[k].Damage;
+                                                unitAWeapon.LastUsed = clock.Now;
+                                                unitB.Damage += unitA.Weapons[k].Damage;
                                             }
-                                            if (unitBWeapon != null && unitA.Health > 0 &&
-                                                (unitB.Weapons[k].LastUsed == null ||
-                                                 unitBWeapon.LastUsed +
-                                                 unitBWeapon.Interval <=
-                                                 clock.Now))
+
+                                            if (unitA.Health > 0 &&
+                                                unitBWeapon.LastUsed.Add(
+                                                 unitBWeapon.Interval) <=
+                                                 clock.Now)
                                             {
-                                                unitB.Weapons[k].LastUsed = clock.Now;
-                                                unitA.Health -= unitA.Weapons[k].Damage;
+                                                unitBWeapon.LastUsed = clock.Now;
+                                                unitA.Damage += unitA.Weapons[k].Damage;
                                             }
                                         }
-                                    }
-
-                                    if (unitA.Health <= 0)
-                                    {
-                                        userService.DeleteUnit(unitA.Owner, unitA.Id);
-                                    }
-
-                                    if (unitB.Health <= 0)
-                                    {
-                                        userService.DeleteUnit(unitB.Owner, unitB.Id);
                                     }
                                 }
                             }
@@ -128,6 +120,8 @@ public static class BackGroundTasks
                     }
                 }
             }
+
+            return Task.CompletedTask;
         });
     }
 }
