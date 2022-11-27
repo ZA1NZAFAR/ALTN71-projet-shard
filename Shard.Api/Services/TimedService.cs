@@ -22,7 +22,7 @@ public class TimedService : IHostedService, IDisposable
     {
         Console.WriteLine("Timed Hosted Service running.");
 
-        _timer = _clock.CreateTimer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1000));
+        _timer = _clock.CreateTimer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
 
         return Task.CompletedTask;
     }

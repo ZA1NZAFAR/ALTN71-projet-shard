@@ -62,7 +62,7 @@ public class Unit
         switch (Type)
         {
             case "bomber":
-                Weapons.Add(new Weapon("canon", 400, TimeSpan.FromSeconds(60),clock.Now));
+                Weapons.Add(new Weapon("bomb", 400, TimeSpan.FromSeconds(60),clock.Now));
                 break;
             case "cruiser":
                 Weapons.Add(new Weapon("canon", 10, TimeSpan.FromSeconds(6),clock.Now));
@@ -71,7 +71,7 @@ public class Unit
                 Weapons.Add(new Weapon("canon", 10, TimeSpan.FromSeconds(6),clock.Now));
                 break;
             case "fighter":
-                Weapons.Add(new Weapon("bomb", 10, TimeSpan.FromSeconds(6),clock.Now));
+                Weapons.Add(new Weapon("canon", 10, TimeSpan.FromSeconds(6),clock.Now));
                 break;
         }
     }

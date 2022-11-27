@@ -60,7 +60,6 @@ public static class BackGroundTasks
     {
         await Task.Run(() =>
         {
-            Console.Write("Fight started");
             var allSystemsHavingUnits = userService.GetAllSystemsHavingUnits();
             foreach (string system in allSystemsHavingUnits)
             {
@@ -77,7 +76,7 @@ public static class BackGroundTasks
 
                 if (unitsGroupedByOwnerListCount > 1)
                 {
-                    for (var i = 0; i < unitsGroupedByOwnerListCount; i+=2)
+                    for (var i = 0; i < unitsGroupedByOwnerListCount; i += 2)
                     {
                         var listA = unitsByOwner[unitsByOwner.Keys.ElementAt(i)];
                         foreach (var unitA in listA)
@@ -95,19 +94,15 @@ public static class BackGroundTasks
                                             var unitBWeapon = unitB.Weapons[k];
 
 
-                                            if (unitB.Health > 0 &&
-                                                (unitAWeapon.LastUsed.Add(
-                                                 unitAWeapon.Interval)) <=
-                                                 clock.Now)
+                                            if (unitB.Health > 0 &&((clock.Now.Minute * 60)+clock.Now.Second)>0&&
+                                                (((clock.Now.Minute * 60)+clock.Now.Second)  % ((unitAWeapon.Interval.Minutes*60) +unitAWeapon.Interval.Seconds) == 0))
                                             {
                                                 unitAWeapon.LastUsed = clock.Now;
                                                 unitB.Damage += unitA.Weapons[k].Damage;
                                             }
 
-                                            if (unitA.Health > 0 &&
-                                                unitBWeapon.LastUsed.Add(
-                                                 unitBWeapon.Interval) <=
-                                                 clock.Now)
+                                            if (unitA.Health > 0 &&((clock.Now.Minute * 60)+clock.Now.Second)>0&&
+                                                (((clock.Now.Minute * 60)+clock.Now.Second)  % ((unitBWeapon.Interval.Minutes*60) +unitBWeapon.Interval.Seconds) == 0))
                                             {
                                                 unitBWeapon.LastUsed = clock.Now;
                                                 unitA.Damage += unitA.Weapons[k].Damage;
