@@ -4,6 +4,7 @@ using System.Web.WebPages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shard.Api.Models;
+using Shard.Api.Models.Enums;
 using Shard.Api.Models.Exceptions;
 using Shard.Api.Services;
 using Shard.Api.Tools;
@@ -37,7 +38,7 @@ public class UserController : Controller
 
         if (_isAuthenticated)
         {
-            if (_userService.ifExistThenUpdateUser(user))
+            if (_userService.IfExistThenUpdateUser(user))
             {
                 return Ok(user);
             }
@@ -58,9 +59,9 @@ public class UserController : Controller
         _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user, _clock);
+            new Unit(Guid.NewGuid().ToString(), UnitTypes.scout.ToString(), system.Name, null!), user, _clock);
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user, _clock);
+            new Unit(Guid.NewGuid().ToString(), UnitTypes.builder.ToString(), system.Name, null!), user, _clock);
 
         return user;
     }
@@ -96,11 +97,6 @@ public class UserController : Controller
             }
         }
 
-        if (SwissKnife.IsCombatUnit(x.Type) && x.Damage >= x.Health)
-        {
-            return NotFound();
-        }
-
         return x;
     }
 
@@ -130,7 +126,7 @@ public class UserController : Controller
         var location = new Location(unit.System, _celestialService.GetPlanetOfSystem(unit.System, unit.Planet));
 
         // getting builder doesn't return resources
-        if (unit.Type.Equals("builder"))
+        if (unit.Type.Equals(UnitTypes.builder.ToString()))
         {
             location.ResourcesQuantity = null;
         }
@@ -145,9 +141,10 @@ public class UserController : Controller
         if (building == null || building.BuilderId == null)
             return BadRequest("Building or builder id is null");
 
-        if (!(building.ResourceCategory == null) && !building.ResourceCategory.Equals("gaseous") &&
-            !building.ResourceCategory.Equals("solid") &&
-            !building.ResourceCategory.Equals("liquid"))
+        if (!(building.ResourceCategory == null) &&
+            !building.ResourceCategory.Equals(ResourceCategories.gaseous.ToString()) &&
+            !building.ResourceCategory.Equals(ResourceCategories.solid.ToString()) &&
+            !building.ResourceCategory.Equals(ResourceCategories.liquid.ToString()))
             return BadRequest("Resource category is not valid");
 
         if (_userService.GetUser(userId) == null)
@@ -156,7 +153,8 @@ public class UserController : Controller
         if (building == null || building.Type.IsEmpty() || building.BuilderId.IsEmpty())
             return BadRequest();
 
-        if (!building.Type.Equals("mine") && !building.Type.Equals("starport"))
+        if (!building.Type.Equals(BuildingTypes.mine.ToString()) &&
+            !building.Type.Equals(BuildingTypes.starport.ToString()))
         {
             return BadRequest();
         }
@@ -219,7 +217,7 @@ public class UserController : Controller
                             return NotFound();
                         }
 
-                        Thread.Sleep(500);
+                        _clock.Sleep(500);
                     }
                 }
             }
@@ -242,7 +240,7 @@ public class UserController : Controller
             if (starport == null)
                 throw new Exception("No starport found");
 
-            if (!starport.Type.Equals("starport"))
+            if (!starport.Type.Equals(BuildingTypes.starport.ToString()))
                 throw new Exception("Building is not a starport");
 
             if (unit == null || unit.Type.IsEmpty())
@@ -280,15 +278,16 @@ public class UserController : Controller
 
         if (authHeader != null && authHeader.StartsWith("Basic"))
         {
-            string encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
-            Encoding encoding = Encoding.GetEncoding("iso-8859-1");
-            string usernamePassword = encoding.GetString(Convert.FromBase64String(encodedUsernamePassword));
+            var encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
+            var encoding = Encoding.GetEncoding("iso-8859-1");
+            var usernamePassword = encoding.GetString(Convert.FromBase64String(encodedUsernamePassword));
 
-            int seperatorIndex = usernamePassword.IndexOf(':');
+            var separatorIndex = usernamePassword.IndexOf(':');
 
-            var username = usernamePassword.Substring(0, seperatorIndex);
-            var password = usernamePassword.Substring(seperatorIndex + 1);
+            var username = usernamePassword.Substring(0, separatorIndex);
+            var password = usernamePassword.Substring(separatorIndex + 1);
 
+            // check credentials
             if (username.Equals("admin") && password.Equals("password"))
             {
                 _isAuthenticated = true;
@@ -297,13 +296,10 @@ public class UserController : Controller
 
         // Every request triggers resource update for all users
         foreach (var user in _userService.GetAllUsers())
-        {
             // update user resources quantity
             SwissKnife.UpdateResources(user, _userService, _celestialService, _clock);
-        }
 
         // BackGroundTasks.Fight(_userService, _celestialService, _clock);
-
 
         base.OnActionExecuting(context);
     }

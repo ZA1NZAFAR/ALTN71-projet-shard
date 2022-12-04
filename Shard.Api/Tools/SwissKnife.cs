@@ -1,5 +1,6 @@
 using Shard.Api.Models;
 using Shard.Api.Models.EditableObjects;
+using Shard.Api.Models.Enums;
 using Shard.Api.Services;
 using Shard.Shared.Core;
 
@@ -101,11 +102,11 @@ public static class SwissKnife
             var planet = _celestialService.GetPlanetOfSystem(building.System, building.Planet);
             ResourceKind resource;
 
-            if (building.ResourceCategory == "gaseous")
+            if (building.ResourceCategory == ResourceCategories.gaseous.ToString())
             {
                 resource = ResourceKind.Oxygen;
             }
-            else if (building.ResourceCategory == "liquid")
+            else if (building.ResourceCategory == ResourceCategories.liquid.ToString())
             {
                 resource = ResourceKind.Water;
             }
@@ -124,9 +125,9 @@ public static class SwissKnife
 
                 // if the resource depleted, get the next one
                 if (minutes > 0 && planet.ResourceQuantity[resource] == 0 && !IsExhausted(planet) &&
-                    building.ResourceCategory == "solid")
+                    building.ResourceCategory == ResourceCategories.solid.ToString())
                 {
-                    resource = SwissKnife.GetHighestResource(planet);
+                    resource = GetHighestResource(planet);
                 }
             }
 
@@ -164,52 +165,59 @@ public static class SwissKnife
     {
         switch (unitType)
         {
-            case "scout": return new Dictionary<ResourceKind, int>
-            {
-                { ResourceKind.Carbon, 5 },
-                { ResourceKind.Iron, 5 }
-            };
-            case "builder": return new Dictionary<ResourceKind, int>
-            {
-                { ResourceKind.Carbon, 5 },
-                { ResourceKind.Iron, 10 }
-            };
-            case "fighter": return new Dictionary<ResourceKind, int>
-            {
-                { ResourceKind.Iron, 20 },
-                { ResourceKind.Aluminium, 10 }
-            };
-            case "bomber": return new Dictionary<ResourceKind, int>
-            {
-                { ResourceKind.Iron, 20 },
-                { ResourceKind.Titanium, 10 }
-            };
-            case "cruiser": return new Dictionary<ResourceKind, int>
-            {
-                { ResourceKind.Iron, 60 },
-                { ResourceKind.Gold, 20 }
-            };
+            case "scout":
+                return new Dictionary<ResourceKind, int>
+                {
+                    { ResourceKind.Carbon, 5 },
+                    { ResourceKind.Iron, 5 }
+                };
+            case "builder":
+                return new Dictionary<ResourceKind, int>
+                {
+                    { ResourceKind.Carbon, 5 },
+                    { ResourceKind.Iron, 10 }
+                };
+            case "fighter":
+                return new Dictionary<ResourceKind, int>
+                {
+                    { ResourceKind.Iron, 20 },
+                    { ResourceKind.Aluminium, 10 }
+                };
+            case "bomber":
+                return new Dictionary<ResourceKind, int>
+                {
+                    { ResourceKind.Iron, 20 },
+                    { ResourceKind.Titanium, 10 }
+                };
+            case "cruiser":
+                return new Dictionary<ResourceKind, int>
+                {
+                    { ResourceKind.Iron, 60 },
+                    { ResourceKind.Gold, 20 }
+                };
             default: throw new Exception("Invalid unit type");
         }
-    }
-    
-    //check if unit is a combat unit
-    public static bool IsCombatUnit(string unitType)
-    {
-        return unitType == "fighter" || unitType == "bomber" || unitType == "cruiser";
     }
     
     // returns the unit to attack depending on the priority of the attacker
     public static Unit? GetUnitToAttack(Unit me, List<Unit> opponents)
     {
         Dictionary<string, List<string>> priorities = new Dictionary<string, List<string>>();
-        priorities.Add("fighter", new List<string>() { "bomber", "fighter", "cruiser" });
-        priorities.Add("cruiser", new List<string>() { "fighter", "cruiser", "bomber" });
-        priorities.Add("bomber", new List<string>() { "cruiser", "bomber", "fighter" });
+        priorities.Add(UnitTypes.fighter.ToString(),
+            new List<string>()
+                { UnitTypes.bomber.ToString(), UnitTypes.fighter.ToString(), UnitTypes.cruiser.ToString() });
+        priorities.Add(UnitTypes.cruiser.ToString(),
+            new List<string>()
+                { UnitTypes.fighter.ToString(), UnitTypes.cruiser.ToString(), UnitTypes.bomber.ToString() });
+        priorities.Add(UnitTypes.bomber.ToString(),
+            new List<string>()
+                { UnitTypes.cruiser.ToString(), UnitTypes.bomber.ToString(), UnitTypes.fighter.ToString() });
 
         var myPriority = priorities[me.Type];
 
         // return the first unit that is in the priority list
-        return myPriority.Select(priority => opponents.FirstOrDefault(u => u.Type.Equals(priority) && u.Owner != me.Owner)).FirstOrDefault(opponent => opponent != null);
+        return myPriority
+            .Select(priority => opponents.FirstOrDefault(u => u.Type.Equals(priority) && u.Owner != me.Owner))
+            .FirstOrDefault(opponent => opponent != null);
     }
 }

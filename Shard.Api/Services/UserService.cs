@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using Shard.Api.Models;
+using Shard.Api.Models.Enums;
 using Shard.Api.Models.Exceptions;
 using Shard.Api.Tools;
 using Shard.Shared.Core;
@@ -17,14 +18,12 @@ public interface IUserService
     Building CreateBuilding(string userId, Building building, IClock clock);
     List<Building> GetBuildingsOfUserById(string userId);
     Building GetBuildingOfUserById(string userId, string buildingId);
-    bool ifExistThenUpdateUser(User user);
+    bool IfExistThenUpdateUser(User user);
     Unit AddToQueue(string userId, string starportId, UnitType unit, IClock clock);
     IEnumerable<User> GetAllUsers();
-    List<string> GetAllPlanetsHavingUnits();
-    List<Unit> getAllUnitsOfAPlanet(string planet);
     void DeleteUnit(string unitAOwner, string unitAId);
     IEnumerable GetAllSystemsHavingUnits();
-    List<Unit> getAllUnitsOfASystem(string systemId);
+    List<Unit> GetAllUnitsOfASystem(string systemId);
 }
 
 public class UserService : IUserService
@@ -35,20 +34,22 @@ public class UserService : IUserService
     // Buildings storage
     private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
 
-    private IClock _clock;
-    private ITimer _timer;
+    private readonly IClock _clock;
+
+    // timer launches fights every 6 seconds
+    private readonly ITimer _fightsTimer;
 
     public UserService(IClock clock)
     {
         _usersUnitsDb = new Dictionary<User, List<Unit>>();
         _usersBuildingsDb = new Dictionary<User, List<Building>>();
         _clock = clock;
-        _timer = clock.CreateTimer(test, null, 6000, 6000);
+        _fightsTimer = clock.CreateTimer(ConductFights, null, 6000, 6000);
     }
 
-    public void test(object? sender)
+    // Orchestrates all fights in all systems
+    private void ConductFights(object? sender)
     {
-        Console.WriteLine(_clock.Now);
         BackGroundTasks.Fight(this, _clock);
     }
 
@@ -83,7 +84,7 @@ public class UserService : IUserService
         return user != null ? _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitId) ?? null : null;
     }
 
-    public Unit? UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock,
+    public Unit UpdateUnitOfUserById(string userId, string unitId, Unit unitUpdated, IClock clock,
         bool isAuthenticated)
     {
         var user = _usersUnitsDb.Keys.First(u => u.Id == userId);
@@ -124,7 +125,7 @@ public class UserService : IUserService
             if (unit != null)
             {
                 // only a "builder" situated on a "planet" in a "system" can build a building
-                if (unit.Type != "builder" || unit.Planet == null || unit.System == null)
+                if (unit.Type != UnitTypes.builder.ToString() || unit.Planet == null || unit.System == null)
                     throw new Exception("Unit is not a builder");
 
                 building.System = unit.System;
@@ -173,7 +174,7 @@ public class UserService : IUserService
         throw new Exception("No buildings found");
     }
 
-    public bool ifExistThenUpdateUser(User user)
+    public bool IfExistThenUpdateUser(User user)
     {
         var userFound = _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == user.Id);
         if (userFound != null)
@@ -196,7 +197,7 @@ public class UserService : IUserService
             if (starport == null)
                 throw new Exception("Starport not found");
 
-            if (starport.Type != "starport")
+            if (starport.Type != BuildingTypes.starport.ToString())
                 throw new Exception("Building is not a starport");
 
             if (starport.System == null || starport.Planet == null)
@@ -204,16 +205,6 @@ public class UserService : IUserService
 
             if (!starport.IsBuilt)
                 throw new Exception("Starport is not built yet");
-
-            // could be useful later
-            // if (starport.Queue == null)
-            //     starport.Queue = new List<Unit>();
-            // if (starport.Queue.Count >= 5)
-            //     throw new Exception("Starport queue is full");
-            // if (starport.Queue.Any(u => u.Type == unit.Type))
-            //     throw new Exception("Unit already in queue");
-            // if (starport.EstimatedBuildTime != null)
-            //     throw new Exception("User is already building a unit");
 
             if (user.ResourcesQuantity == null)
                 throw new Exception("User has no resources");
@@ -224,16 +215,15 @@ public class UserService : IUserService
                 throw new Exception("User has not enough resources");
             }
 
-
-            //starport.Queue.Add(unit);
-
             foreach (var resource in SwissKnife.GetUnitCost(unit.Type))
             {
                 user.ResourcesQuantity[resource.Key] -= resource.Value;
             }
 
-            var unitToAdd = new Unit(Guid.NewGuid().ToString(), unit.Type, starport.System, starport.Planet);
-            unitToAdd.Owner = userId;
+            var unitToAdd = new Unit(Guid.NewGuid().ToString(), unit.Type, starport.System, starport.Planet)
+            {
+                Owner = userId
+            };
             unitToAdd.EquipWeapons(clock);
 
             AddUnitUser(unitToAdd, user, clock);
@@ -247,16 +237,6 @@ public class UserService : IUserService
     public IEnumerable<User> GetAllUsers()
     {
         return _usersUnitsDb.Keys.Union(_usersBuildingsDb.Keys);
-    }
-
-    public List<string> GetAllPlanetsHavingUnits()
-    {
-        return _usersUnitsDb.Values.SelectMany(u => u).Select(u => u.Planet).Distinct().ToList();
-    }
-
-    public List<Unit> getAllUnitsOfAPlanet(string planet)
-    {
-        return _usersUnitsDb.Values.SelectMany(u => u).Where(u => u.Planet == planet).ToList();
     }
 
     public void DeleteUnit(string unitAOwner, string unitAId)
@@ -278,7 +258,7 @@ public class UserService : IUserService
         return _usersUnitsDb.Values.SelectMany(u => u).Select(u => u.System).Distinct().ToList();
     }
 
-    public List<Unit> getAllUnitsOfASystem(string systemId)
+    public List<Unit> GetAllUnitsOfASystem(string systemId)
     {
         return _usersUnitsDb.Values.SelectMany(u => u).Where(u => u.System == systemId).ToList();
     }

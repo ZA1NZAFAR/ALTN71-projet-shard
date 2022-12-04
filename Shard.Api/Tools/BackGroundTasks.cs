@@ -1,4 +1,5 @@
 using Shard.Api.Models;
+using Shard.Api.Models.Enums;
 using Shard.Api.Services;
 using Shard.Shared.Core;
 
@@ -61,10 +62,11 @@ public static class BackGroundTasks
         var allSystemsHavingUnits = userService.GetAllSystemsHavingUnits();
         foreach (string system in allSystemsHavingUnits)
         {
-            var unitsInSystem = userService.getAllUnitsOfASystem(system);
+            var unitsInSystem = userService.GetAllUnitsOfASystem(system);
 
             // remove all units of type builder and scout
-            unitsInSystem.RemoveAll(u => u.Type.Equals("scout") || u.Type.Equals("builder"));
+            unitsInSystem.RemoveAll(u =>
+                u.Type.Equals(UnitTypes.scout.ToString()) || u.Type.Equals(UnitTypes.builder.ToString()));
 
             foreach (var attacker in unitsInSystem)
             {
@@ -74,18 +76,16 @@ public static class BackGroundTasks
                     // fight
                     foreach (var attackWeapon in attacker.Weapons)
                     {
-                        if ((clock.Now.Second == 0 && attacker.Type.Equals("bomber")) ||
-                            (clock.Now.Second % 6 == 0 && !attacker.Type.Equals("bomber")))
+                        if ((clock.Now.Second == 0 && attacker.Type.Equals(UnitTypes.bomber.ToString())) ||
+                            (clock.Now.Second % 6 == 0 && !attacker.Type.Equals(UnitTypes.bomber.ToString())))
                         {
-                            var dammage = attacker.Type.Equals("cruiser") && unitToAttack.Type.Equals("bomber")
+                            var damage = attacker.Type.Equals(UnitTypes.cruiser.ToString()) &&
+                                         unitToAttack.Type.Equals(UnitTypes.bomber.ToString())
                                 ? attackWeapon.Damage / 10
                                 : attackWeapon.Damage;
-                            unitToAttack.Health -= dammage;
+                            unitToAttack.Health -= damage;
                             attackWeapon.LastUsed = clock.Now;
-                            Console.WriteLine("Unit of type " + attacker.Type + " attacked unit of type " +
-                                              unitToAttack.Type +
-                                              " with weapon of type " + attackWeapon.Type + " and did " + dammage +
-                                              " dammage");
+
                             if (unitToAttack.Health <= 0)
                             {
                                 userService.DeleteUnit(unitToAttack.Owner, unitToAttack.Id);
