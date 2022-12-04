@@ -24,7 +24,6 @@ public class UserController : Controller
         _celestialService = celestialService;
         _userService = userService;
         _clock = clock;
-        new TimedService(_clock, _userService,_celestialService).StartAsync(new CancellationToken(false));
     }
 
     [HttpPut("users/{userId}")]
@@ -59,9 +58,9 @@ public class UserController : Controller
         _userService.AddUser(user);
         var system = _celestialService.GetRandomSystem();
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user,_clock);
+            new Unit(Guid.NewGuid().ToString(), "scout", system.Name, null!), user, _clock);
         _userService.AddUnitUser(
-            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user,_clock);
+            new Unit(Guid.NewGuid().ToString(), "builder", system.Name, null!), user, _clock);
 
         return user;
     }
@@ -97,7 +96,7 @@ public class UserController : Controller
             }
         }
 
-        if (SwissKnife.IsCombatUnit(x.Type) && x.Damage>=x.Health)
+        if (SwissKnife.IsCombatUnit(x.Type) && x.Damage >= x.Health)
         {
             return NotFound();
         }
@@ -264,7 +263,7 @@ public class UserController : Controller
                     return BadRequest();
                 case "Starport is not built yet":
                     return BadRequest();
-                case "User has no resources"  :
+                case "User has no resources":
                     return BadRequest();
                 case "User has not enough resources":
                     return BadRequest();
@@ -302,7 +301,7 @@ public class UserController : Controller
             // update user resources quantity
             SwissKnife.UpdateResources(user, _userService, _celestialService, _clock);
         }
-        
+
         // BackGroundTasks.Fight(_userService, _celestialService, _clock);
 
 

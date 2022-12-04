@@ -198,4 +198,18 @@ public static class SwissKnife
     {
         return unitType == "fighter" || unitType == "bomber" || unitType == "cruiser";
     }
+    
+    // returns the unit to attack depending on the priority of the attacker
+    public static Unit? GetUnitToAttack(Unit me, List<Unit> opponents)
+    {
+        Dictionary<string, List<string>> priorities = new Dictionary<string, List<string>>();
+        priorities.Add("fighter", new List<string>() { "bomber", "fighter", "cruiser" });
+        priorities.Add("cruiser", new List<string>() { "fighter", "cruiser", "bomber" });
+        priorities.Add("bomber", new List<string>() { "cruiser", "bomber", "fighter" });
+
+        var myPriority = priorities[me.Type];
+
+        // return the first unit that is in the priority list
+        return myPriority.Select(priority => opponents.FirstOrDefault(u => u.Type.Equals(priority) && u.Owner != me.Owner)).FirstOrDefault(opponent => opponent != null);
+    }
 }

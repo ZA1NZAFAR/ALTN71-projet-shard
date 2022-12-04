@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using Microsoft.AspNetCore.Mvc;
 using Shard.Api.Models;
 using Shard.Api.Models.Exceptions;
 using Shard.Api.Tools;
@@ -10,7 +9,7 @@ namespace Shard.Api.Services;
 public interface IUserService
 {
     public void AddUser(User user);
-    public void AddUnitUser(Unit unit, User user,IClock clock);
+    public void AddUnitUser(Unit unit, User user, IClock clock);
     User? GetUser(string userId);
     List<Unit>? GetUnitsOfUserById(string userId);
     Unit? GetUnitOfUserById(string userId, string unitId);
@@ -36,11 +35,23 @@ public class UserService : IUserService
     // Buildings storage
     private readonly Dictionary<User, List<Building>> _usersBuildingsDb;
 
-    public UserService()
+    private IClock _clock;
+    private ITimer _timer;
+
+    public UserService(IClock clock)
     {
         _usersUnitsDb = new Dictionary<User, List<Unit>>();
         _usersBuildingsDb = new Dictionary<User, List<Building>>();
+        _clock = clock;
+        _timer = clock.CreateTimer(test, null, 6000, 6000);
     }
+
+    public void test(object? sender)
+    {
+        Console.WriteLine(_clock.Now);
+        BackGroundTasks.Fight(this, _clock);
+    }
+
 
     public void AddUser(User user)
     {
@@ -48,13 +59,14 @@ public class UserService : IUserService
             _usersUnitsDb.Add(user, new List<Unit>());
     }
 
-    public void AddUnitUser(Unit unit, User user,IClock clock)
+    public void AddUnitUser(Unit unit, User user, IClock clock)
     {
         unit.Owner = user.Id;
         unit.EquipWeapons(clock);
         if (_usersUnitsDb.ContainsKey(user))
             _usersUnitsDb[user].Add(unit);
     }
+
 
     public User? GetUser(string userId)
         => _usersUnitsDb.Keys.FirstOrDefault(u => u.Id == userId) ?? null;
@@ -224,7 +236,7 @@ public class UserService : IUserService
             unitToAdd.Owner = userId;
             unitToAdd.EquipWeapons(clock);
 
-            _usersUnitsDb[user].Add(unitToAdd);
+            AddUnitUser(unitToAdd, user, clock);
 
             return unitToAdd;
         }
@@ -249,14 +261,14 @@ public class UserService : IUserService
 
     public void DeleteUnit(string unitAOwner, string unitAId)
     {
-        var user = _usersUnitsDb.Keys.First(u => u.Id.Equals( unitAOwner));
+        var user = _usersUnitsDb.Keys.First(u => u.Id.Equals(unitAOwner));
         if (user == null)
             throw new Exception("User not found");
         if (_usersUnitsDb.ContainsKey(user))
         {
             var unit = _usersUnitsDb[user].FirstOrDefault(u => u.Id == unitAId);
-            if (unit == null)
-                throw new Exception("Unit not found");
+            if (unit == null) // unit already deleted!
+                return;
             _usersUnitsDb[user].Remove(unit);
         }
     }
